@@ -1,0 +1,85 @@
+services:
+  aegis-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: aegis-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - SECRET_KEY=aegis-production-secret-key-must-be-rotated-in-prod-32bytes
+      - AEGIS_ENCRYPTION_KEY=c2VjdXJlLWRwZHBhLWFlZ2lzLXRydXN0LTIwMjYtMDAwMSE=
+      - DATABASE_URL=postgresql+psycopg2://aegis_user:aegis_secure_pass_2026@postgres:5432/aegis_trust
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - SLA_MAX_LATENCY_MS=50.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aegis-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  aegis-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: aegis-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - aegis-api
+    networks:
+      - aegis-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: aegis-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=aegis_user
+      - POSTGRES_PASSWORD=aegis_secure_pass_2026
+      - POSTGRES_DB=aegis_trust
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - aegis-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis_user -d aegis_trust"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aegis-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "volatile-lru"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - aegis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  aegis-net:
+    driver: bridge
