@@ -238,3 +238,4 @@ make redis-start    # Start Redis daemon with redis.conf
    Demonstrate column-level AES-256 encryption, HMAC-SHA256 blind indexing (enabling rapid duplicate search without decrypting), SHA-256 hash chaining for tamper-evident auditability, and Section 12 Right to Erasure.
 3. **Engineering Rigor & Zero-Defect Standards:**
    Demonstrate 32/32 tests passing, 86% test coverage, strict Pydantic v2 schemas, multi-stage non-root Docker builds, and complete Kubernetes production manifests.
+# Veles
