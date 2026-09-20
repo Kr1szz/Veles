@@ -1,7 +1,20 @@
-.PHONY: all init build-cpp build-frontend test benchmark run clean redis-start redis-stop redis-ping docker-build docker-up docker-down
+.PHONY: all init start stop status build-cpp build-frontend test benchmark run clean redis-start redis-stop redis-ping docker-build docker-up docker-down
 
 init:
 	./scripts/init_services.sh
+
+start:
+	./scripts/start_server.sh
+
+stop:
+	./scripts/stop_server.sh
+
+status:
+	@echo "--- Redis Status ---"
+	@$(MAKE) --no-print-directory redis-ping
+	@echo "--- Veles Shield API Status ---"
+	@curl -s http://localhost:8000/health || echo "API is not reachable on localhost:8000"
+
 
 PYTHON ?= .venv/bin/python3
 PYTEST ?= .venv/bin/pytest

@@ -85,7 +85,7 @@ frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", 
 if os.path.isdir(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
-    @app.get("/{full_path:path}")
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
     def serve_spa(full_path: str):
         index_file = os.path.join(frontend_dist, "index.html")
         if os.path.exists(index_file):
