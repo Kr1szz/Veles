@@ -17,6 +17,10 @@ env/
 *.sqlite
 *.sqlite3
 aegis_trust.db
+veles_shield.db
+*.pid
+*.rdb
+appendonlydir/
 
 # Frontend
 frontend/node_modules/
