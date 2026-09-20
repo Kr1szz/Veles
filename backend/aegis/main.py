@@ -17,6 +17,7 @@ from aegis.api.v1.dpdpa import router as dpdpa_router
 from aegis.api.v1.rules import router as rules_router
 from aegis.api.v1.metrics import router as metrics_router
 from aegis.api.v1.events import router as events_router
+from aegis.core.rate_limiter import rate_limiter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,12 +68,14 @@ app.include_router(events_router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["Health"])
-def health_check():
+async def health_check():
+    redis_active = await rate_limiter.is_redis_connected()
     return {
         "status": "HEALTHY",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "cpp_engine_active": HAS_CPP_ENGINE,
+        "redis_active": redis_active,
         "sla_target": "<50ms"
     }
 

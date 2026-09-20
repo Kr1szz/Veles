@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: veles-postgres
+  namespace: veles-shield
+spec:
+  serviceName: veles-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: veles-postgres
+  template:
+    metadata:
+      labels:
+        app: veles-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          envFrom:
+            - secretRef:
+                name: veles-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "veles_user", "-d", "veles_shield"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "veles_user", "-d", "veles_shield"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: veles-postgres
+  namespace: veles-shield
+spec:
+  selector:
+    app: veles-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres

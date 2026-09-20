@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: veles-shield
+  labels:
+    app.kubernetes.io/name: veles-shield
+    app.kubernetes.io/part-of: idfy-fraud-platform

@@ -1,6 +1,6 @@
 import base64
 import os
-from typing import List
+from typing import List, Optional
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # DPDPA Column-Level Encryption Key (32-byte urlsafe base64 for Fernet / AES)
     # Default stable 32-byte key for development/test if not overridden
     AEGIS_ENCRYPTION_KEY: str = "c2VjdXJlLWRwZHBhLWFlZ2lzLXRydXN0LTIwMjYtMDAwMSE="
+    VELES_ENCRYPTION_KEY: Optional[str] = None
 
     # Database
     DATABASE_URL: str = "sqlite:///./veles_shield.db"
@@ -56,19 +57,21 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    @field_validator("AEGIS_ENCRYPTION_KEY")
+    @field_validator("AEGIS_ENCRYPTION_KEY", mode="before")
     @classmethod
     def validate_encryption_key(cls, v: str) -> str:
+        override = os.environ.get("VELES_ENCRYPTION_KEY")
+        target = override or v
         try:
-            decoded = base64.urlsafe_b64decode(v)
+            decoded = base64.urlsafe_b64decode(target)
             if len(decoded) != 32:
                 # If padding or length differs, re-encode a 32-byte key
-                raise ValueError("AEGIS_ENCRYPTION_KEY must decode to exactly 32 bytes")
+                raise ValueError("Encryption key must decode to exactly 32 bytes")
         except Exception:
             # Generate deterministic fallback 32 bytes for dev
-            raw = (v + "0" * 32)[:32].encode("utf-8")
+            raw = (target + "0" * 32)[:32].encode("utf-8")
             return base64.urlsafe_b64encode(raw).decode("ascii")
-        return v
+        return target
 
 
 settings = Settings()

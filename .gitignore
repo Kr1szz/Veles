@@ -5,6 +5,7 @@ __pycache__/
 *.so
 *.o
 *.dylib
+bin/
 
 # Virtual Environments
 .venv/

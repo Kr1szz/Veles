@@ -83,12 +83,19 @@ def test_dpdpa_endpoints(client, auth_headers):
 
 def test_cpp_engine_pure_python_fallbacks(monkeypatch):
     """
-    Simulate environment where libaegis.so is not present to test pure Python fallbacks.
+    Simulate environment where libveles.so is not present to test pure Python fallbacks.
     """
-    # Temporarily set _lib = None
     original_lib = cpp_bindings._lib
+    original_fn_shannon = cpp_bindings._fn_shannon
+    original_fn_name = cpp_bindings._fn_name
+    original_fn_ewma = cpp_bindings._fn_ewma
+    original_fn_verhoeff = cpp_bindings._fn_verhoeff
     try:
         cpp_bindings._lib = None
+        cpp_bindings._fn_shannon = None
+        cpp_bindings._fn_name = None
+        cpp_bindings._fn_ewma = None
+        cpp_bindings._fn_verhoeff = None
 
         # Test pure python entropy
         ent = cpp_bindings.calculate_shannon_entropy("Hello World")
@@ -107,6 +114,10 @@ def test_cpp_engine_pure_python_fallbacks(monkeypatch):
         assert cpp_bindings.validate_verhoeff("123456789012") is False
     finally:
         cpp_bindings._lib = original_lib
+        cpp_bindings._fn_shannon = original_fn_shannon
+        cpp_bindings._fn_name = original_fn_name
+        cpp_bindings._fn_ewma = original_fn_ewma
+        cpp_bindings._fn_verhoeff = original_fn_verhoeff
 
 
 def test_rules_configuration_endpoint(client):

@@ -5,6 +5,17 @@
 
 ---
 
+## 📚 Complete Technical Documentation
+
+| Document | Focus & Highlights |
+| :--- | :--- |
+| 📐 [**System Architecture**](docs/ARCHITECTURE.md) | Pipeline topology, Shannon entropy math, lexical keyboard smash, EWMA variance equations, Aadhaar Verhoeff dihedral group ($D_5$), DPDPA 2023 cryptographic hash chains, and Redis sliding-window algorithms. |
+| 🔌 [**REST API Reference**](docs/API_REFERENCE.md) | Complete OpenAPI/REST specification: KYC verification, transaction risk, analyst review queue, audit ledger verification, Right to Erasure, rate limit headers, and curl examples. |
+| 🚀 [**Production Deployment Guide**](docs/DEPLOYMENT.md) | Docker Compose microservices, Kubernetes manifests (`k8s/`), Redis clustering, PostgreSQL connection pooling (PgBouncer), Fernet key rotation, and disaster recovery runbook. |
+| ⏱️ [**SLA & Benchmark Report**](docs/BENCHMARKS.md) | Detailed methodology, latency distribution (P50 25ms, P95 31ms, Max 40ms), sub-50ms SLA guarantee proof, and SIMD micro-benchmark execution breakdown. |
+
+---
+
 ## 1. Executive Summary & IDfy Alignment
 
 | IDfy Product | Veles Shield Architectural Feature | Implementation & Technical Design |
@@ -21,20 +32,20 @@
  Incoming Payload (KYC / Transaction)
                │
                ▼
-   [ FastAPI Gateway / Rate Limiter ]  <── Redis Caching / Sliding Window (Sub-50ms Latency)
+   [ FastAPI Gateway / Rate Limiter ]  <── Redis Sliding Window ZSET (Sub-50ms SLA)
                │
                ├──► [ Rule Engine (Deterministic) ]  ── (Velocity Checks, Blacklists, PAN/Aadhaar)
-               ├──► [ C++ Anomaly / ML Scorer ]     ── (Shannon Entropy & EWMA Variance)
+               ├──► [ C++ SIMD Anomaly Scorer ]      ── (Shannon Entropy & EWMA Variance)
                │
                ▼
-   [ Event Worker / Worker Queue ]
+   [ Decision & DPDPA Cryptographic Layer ]
                │
                ├──► [ PostgreSQL / SQLite ] ────────── (Auditable Ledger & DPDPA Compliance)
-               └──► [ React Dashboard (SSE) ] ──────── (Real-Time Risk & Fraud Metrics)
+               └──► [ React Dashboard (SSE) ] ──────── (Real-Time Risk & Fraud Stream)
 ```
 
 ### End-to-End Execution Flow
-1. **Gateway Ingestion & Rate Limiting:** FastAPI gateway validates payloads with Pydantic v2. Rate limiter evaluates IP/device velocity via sliding-window counter in $<0.2\text{ms}$.
+1. **Gateway Ingestion & Rate Limiting:** FastAPI gateway validates payloads with Pydantic v2. Rate limiter evaluates IP/device velocity via sliding-window counter in $<0.25\text{ms}$.
 2. **Parallel Hybrid Evaluation Pipeline:**
    - **Deterministic Rule Engine:** Validates PAN structure, executes Aadhaar Verhoeff checksum algorithm, screens disposable domains (`mailinator.com`, etc.), flags proxy/TOR IP subnets.
    - **C++ SIMD Native Accelerator (`libveles.so`):** Computes Shannon token entropy (`-sum(p*log2(p))`), character class clusters, and EWMA deviation in $<50\mu\text{s}$ via zero-overhead `ctypes` bindings.
@@ -54,16 +65,16 @@ Veles Shield is engineered for high throughput and sub-50ms latency SLAs:
 BENCHMARK RESULTS (200 Sequential End-to-End Verification Pipeline Calls)
 ----------------------------------------------------------------------
 Total Requests Completed:   200 / 200 (100.0% Success)
-Total Wall Time:            5.05 seconds
-Throughput:                 39.6 req/sec (Single-Process TestClient)
-Min Latency:                16.78 ms
-P50 Median Latency:         22.98 ms
-P90 Latency:                36.60 ms
-P95 Latency:                40.80 ms
-P99 Latency:                47.08 ms
-Max Latency:                48.04 ms
-Sub-50ms SLA Compliance:    100.00%
-Internal Engine Run Time:   0.05 ms - 0.20 ms
+Total Wall Time:            5.17 seconds
+Throughput:                 38.7 req/sec (Single-Process TestClient)
+Min Latency:                17.81 ms
+P50 Median Latency:         25.59 ms
+P90 Latency:                30.75 ms
+P95 Latency:                31.97 ms
+P99 Latency:                36.01 ms
+Max Latency:                40.43 ms
+Sub-50ms SLA Compliance:    100.00% (ZERO BREACHES)
+Internal Engine Run Time:   0.05 ms - 0.25 ms
 Status:                     >>> SLA TARGET STRICTLY MET (P95 < 50.0ms) <<<
 ----------------------------------------------------------------------
 ```
@@ -84,22 +95,22 @@ backend/aegis/models/database.py            74      0   100%
 backend/aegis/api/v1/metrics.py             23      0   100%
 backend/aegis/api/v1/rules.py                7      0   100%
 backend/aegis/api/v1/dpdpa.py               36      0   100%
-backend/aegis/config.py                     40      1    98%
+backend/aegis/config.py                     43      1    98%
 backend/aegis/core/audit.py                 38      1    97%
 backend/aegis/models/schemas.py             53      2    96%
 backend/aegis/engine/pipeline.py            58      4    93%
 backend/aegis/services/storage.py          110      8    93%
-backend/aegis/main.py                       54      7    87%
+backend/aegis/main.py                       57      7    88%
 backend/aegis/core/security.py              78     11    86%
 backend/aegis/api/v1/verify.py              43      6    86%
 backend/aegis/api/v1/reviews.py             27      4    85%
 backend/aegis/engine/cpp_bindings.py       143     21    85%
 backend/aegis/engine/anomaly_scorer.py      61     12    80%
 backend/aegis/engine/rule_engine.py         95     22    77%
-backend/aegis/core/rate_limiter.py          88     28    68%
+backend/aegis/core/rate_limiter.py          96     28    71%
 backend/aegis/services/event_stream.py      39     17    56%
 ------------------------------------------------------------
-TOTAL                                     1161    171    85%
+TOTAL                                     1181    171    86%
 ======================== 32 passed, 2 warnings in 3.12s ========================
 ```
 
@@ -130,21 +141,38 @@ TOTAL                                     1161    171    85%
 │   ├── aegis/
 │   │   ├── api/v1/             # REST endpoints (verify, reviews, dpdpa, metrics, rules, events)
 │   │   ├── core/               # Rate limiting, AES/Fernet encryption, audit ledger, middleware
-│   │   ├── cpp/                # C++20 Shannon Entropy & EWMA Anomaly Engine
+│   │   ├── cpp/                # C++20 Shannon Entropy & EWMA Anomaly Engine (SIMD)
 │   │   ├── engine/             # C++ ctypes bindings, rule engine, ensemble pipeline
 │   │   ├── models/             # SQLAlchemy ORM models & Pydantic v2 schemas
 │   │   └── services/           # Storage, Redis sliding window, SSE broadcaster
 │   ├── tests/                  # 32 unit and integration tests (PyTest)
-│   ├── Dockerfile              # Multi-stage C++ builder + Python runner
+│   ├── Dockerfile              # Multi-stage C++ builder + Python runner (non-root)
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/                    # React 19 + Vite dashboard (Anti-vibecode clean UX)
 │   ├── Dockerfile              # Multi-stage Node builder + Nginx runner
-│   └── nginx.conf
+│   └── nginx.conf              # Upstream reverse proxy & security headers
 ├── benchmarks/
 │   └── latency_test.py         # Sub-50ms SLA benchmark tool
+├── docs/                       # Comprehensive technical documentation
+│   ├── ARCHITECTURE.md         # System topology, math formulas, DPDPA design
+│   ├── API_REFERENCE.md        # OpenAPI REST reference, schemas, curl examples
+│   ├── DEPLOYMENT.md           # Docker Compose, K8s manifests, Redis/PG tuning
+│   └── BENCHMARKS.md           # Benchmark methodology, percentiles, micro-benchmarks
+├── k8s/                        # Enterprise Kubernetes deployment manifests
+│   ├── namespace.yaml
+│   ├── configmap-secrets.yaml
+│   ├── redis-deployment.yaml
+│   ├── postgres-statefulset.yaml
+│   ├── veles-api-deployment.yaml
+│   ├── veles-frontend-deployment.yaml
+│   └── ingress.yaml
+├── scripts/
+│   ├── init_services.sh        # Unified environment & health diagnostics initializer
+│   └── docker_run.sh           # Docker Compose deployment runner
+├── .env.example                # Production environment template
 ├── docker-compose.yml          # Multi-container orchestration (API, Frontend, Postgres, Redis)
-├── Makefile                    # Build, test, and run automation
+├── Makefile                    # Build, test, run, and service management automation
 └── README.md
 ```
 
@@ -152,61 +180,61 @@ TOTAL                                     1161    171    85%
 
 ## 7. Quickstart Guide
 
-### Option A: Local Native Setup (Recommended for testing)
-
-#### 1. Build C++ Engine & Install Python Dependencies
+### Step 1: One-Click Production Initialization
+Run the unified service initializer to verify Python, compile the C++ SIMD library, start Redis, build the React frontend, and run self-diagnostics:
 ```bash
-# Compile C++ shared library
-make build-cpp
-
-# Install dependencies in virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
+make init
 ```
 
-#### 2. Run Tests & Latency Benchmark
+### Step 2: Run Tests & Latency Benchmark
 ```bash
 # Run unit & integration test suite with coverage
 make test
 
-# Run sub-50ms SLA benchmark
+# Run sub-50ms SLA benchmark (200 requests)
 make benchmark
 ```
 
-#### 3. Build Frontend & Start Server
-```bash
-# Build React frontend
-make build-frontend
+### Step 3: Start Services
 
-# Start Veles Shield server
+#### Option A: Local Microservices (Recommended for Development & Testing)
+```bash
 make run
 ```
-Open **`http://localhost:8000`** in your browser to access the Analyst Dashboard, or **`http://localhost:8000/docs`** for interactive Swagger API documentation.
+- Analyst Dashboard: `http://localhost:8000`
+- Interactive Swagger API Docs: `http://localhost:8000/docs`
+- Health Probe: `http://localhost:8000/health`
+- Default Analyst Credentials: `analyst_admin` / `AegisSecure@2026`
 
-Default Analyst Credentials:
-- **Username:** `analyst_admin`
-- **Password:** `AegisSecure@2026`
-
----
-
-### Option B: Docker Compose (Full Microservices Stack)
-
+#### Option B: Docker Compose (Full Stack Microservices)
 ```bash
-docker-compose up --build
+sudo ./scripts/docker_run.sh
+# or: docker compose up --build -d
 ```
 - Frontend Dashboard: `http://localhost:3000`
 - Backend API Gateway: `http://localhost:8000`
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 
+#### Option C: Production Kubernetes (K8s)
+```bash
+kubectl apply -f k8s/
+```
+
+### Native Redis Management
+```bash
+make redis-ping     # Ping Redis daemon (returns PONG)
+make redis-stop     # Gracefully stop Redis daemon
+make redis-start    # Start Redis daemon with redis.conf
+```
+
 ---
 
 ## 8. Interview Talking Points
 
 1. **Sub-50ms SLA Delivery:**
-   Explain the dual-engine design: deterministic rules and C++ SIMD Shannon entropy run in parallel in $<0.2\text{ms}$. Sliding window rate limiting uses in-memory deque or Redis Sorted Sets.
+   Explain the dual-engine design: deterministic rules and C++ SIMD Shannon entropy run in parallel in $<0.25\text{ms}$. Sliding window rate limiting uses Redis Sorted Sets with a 30s circuit-breaker fallback to in-memory deque.
 2. **DPDPA 2023 & IDfy Privy Integration:**
-   Demonstrate column-level encryption, HMAC blind indexing (enabling fast duplicate search without decrypting), and SHA-256 hash chaining for tamper-evident auditability.
-3. **Engineering Rigor & TDD:**
-   Demonstrate 32 test cases, 85% test coverage, circuit breaker patterns for Redis failover, and strict Pydantic v2 schemas.
+   Demonstrate column-level AES-256 encryption, HMAC-SHA256 blind indexing (enabling rapid duplicate search without decrypting), SHA-256 hash chaining for tamper-evident auditability, and Section 12 Right to Erasure.
+3. **Engineering Rigor & Zero-Defect Standards:**
+   Demonstrate 32/32 tests passing, 86% test coverage, strict Pydantic v2 schemas, multi-stage non-root Docker builds, and complete Kubernetes production manifests.

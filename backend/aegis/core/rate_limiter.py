@@ -64,6 +64,19 @@ class SlidingWindowRateLimiter:
                 logger.debug(f"Redis unavailable ({e}), using in-memory sliding window fallback.")
                 return None
 
+    async def is_redis_connected(self) -> bool:
+        """Check if Redis connection is active and responsive."""
+        if not settings.REDIS_ENABLED:
+            return False
+        client = await self._get_redis()
+        if client is None:
+            return False
+        try:
+            return bool(await client.ping())
+        except Exception:
+            self._redis_available = False
+            return False
+
     async def check_velocity(
         self,
         key: str,

@@ -1,4 +1,4 @@
-# Production Dockerfile for AEGIS-Trust Frontend Dashboard
+# Production Dockerfile for Veles Shield Frontend Dashboard
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY frontend/package.json ./

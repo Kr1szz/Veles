@@ -1,4 +1,7 @@
-.PHONY: all build-cpp build-frontend test benchmark run clean redis-start redis-stop redis-ping docker-build docker-up docker-down
+.PHONY: all init build-cpp build-frontend test benchmark run clean redis-start redis-stop redis-ping docker-build docker-up docker-down
+
+init:
+	./scripts/init_services.sh
 
 PYTHON ?= .venv/bin/python3
 PYTEST ?= .venv/bin/pytest

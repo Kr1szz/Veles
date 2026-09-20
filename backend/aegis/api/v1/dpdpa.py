@@ -45,6 +45,7 @@ def get_audit_ledger(
     }
 
 
+@router.get("/audit-ledger/verify")
 @router.post("/audit-ledger/verify")
 def verify_audit_ledger_integrity(db: Session = Depends(get_db)):
     """
