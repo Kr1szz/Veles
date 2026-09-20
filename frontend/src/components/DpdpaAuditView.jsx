@@ -8,7 +8,6 @@ export default function DpdpaAuditView() {
   const [chainStatus, setChainStatus] = useState(null);
   const [verifyingChain, setVerifyingChain] = useState(false);
 
-  // Erasure form
   const [erasureId, setErasureId] = useState('');
   const [erasureReason, setErasureReason] = useState('Data Principal requested Right to be Forgotten under DPDPA 2023 Sec 12');
   const [erasureResult, setErasureResult] = useState('');
@@ -65,22 +64,17 @@ export default function DpdpaAuditView() {
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="stack mb">
+      <div className="hstack-between">
         <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>DPDPA 2023 Compliance &amp; Cryptographic Audit Ledger</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Aligned with IDfy Privy: Column-level encryption, purpose limitation, tamper-evident SHA-256 hash chains, and right to erasure.
+          <h2 style={{ fontSize: 15, fontWeight: 700 }}>DPDPA 2023 compliance & cryptographic audit ledger</h2>
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+            IDfy Privy aligned: column-level encryption, purpose limitation, tamper-evident SHA-256 hash chains, right to erasure.
           </p>
         </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleVerifyChain}
-            disabled={verifyingChain}
-          >
-            {verifyingChain ? 'Verifying SHA-256 Hashes...' : 'Verify Cryptographic Chain Integrity'}
+        <div className="hstack">
+          <button className="btn btn-primary btn-sm" onClick={handleVerifyChain} disabled={verifyingChain}>
+            {verifyingChain ? 'Verifying SHA-256 hashes...' : 'Verify cryptographic chain'}
           </button>
           <button className="btn btn-secondary btn-sm" onClick={fetchData} disabled={loading}>
             Refresh
@@ -88,156 +82,127 @@ export default function DpdpaAuditView() {
         </div>
       </div>
 
-      {/* Chain Verification Result Card */}
       {chainStatus && (
-        <div
-          style={{
-            padding: '0.85rem 1rem',
-            marginBottom: '1.25rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: chainStatus.chain_intact ? 'rgba(16, 185, 129, 0.15)' : 'var(--color-danger-bg)',
-            border: `1px solid ${chainStatus.chain_intact ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.5rem'
-          }}
-        >
+        <div className={`alertbar ${chainStatus.chain_intact ? 'success' : 'error'}`}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: chainStatus.chain_intact ? '#86efac' : '#fca5a5' }}>
-              {chainStatus.chain_intact
-                ? `✓ Cryptographic Chain Intact (${chainStatus.total_blocks_verified} Blocks Verified)`
-                : `⚠ Chain Tamper Detected: ${chainStatus.error}`}
+            <div className="alert-title">
+              {chainStatus.chain_intact ? `✓ Chain intact — ${chainStatus.total_blocks_verified} blocks verified` : `⚠ Chain tamper detected: ${chainStatus.error}`}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Every risk evaluation and decision override is SHA-256 chained to its predecessor block.
-            </div>
+            <div className="alert-sub">Every risk evaluation and override is SHA-256 chained to its predecessor block.</div>
           </div>
-
           {chainStatus.latest_hash && (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Latest Merkle/Block Hash:</div>
-              <code className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--color-info)' }}>
-                {chainStatus.latest_hash.substring(0, 20)}...
-              </code>
+            <div className="alert-side">
+              <div className="cell-muted" style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Latest block hash</div>
+              <code className="mono" style={{ color: 'var(--cyan)', fontSize: 11 }}>{chainStatus.latest_hash.substring(0, 20)}...</code>
             </div>
           )}
         </div>
       )}
 
-      {/* Grid: Audit Ledger and Right to Erasure */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-        {/* Right to Erasure / Forgotten Card */}
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-            DPDPA Right to Erasure (Sec 12)
-          </h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Data Principals can request erasure of their personal identifiers. Veles Shield scrubs encrypted PII while preserving anonymized cryptographic audit lineage for statutory AML compliance.
-          </p>
-
-          <form onSubmit={handleExecuteErasure}>
-            <div className="form-group">
-              <label className="form-label">Identifier (Email or PAN)</label>
-              <input
-                type="text"
-                className="form-input font-mono"
-                placeholder="e.g. user@example.com or ABCPE1234F"
-                value={erasureId}
-                onChange={(e) => setErasureId(e.target.value)}
-                required
-              />
+      <div className="signals-3up">
+        <div className="panel">
+          <div className="panel-body stack">
+            <div>
+              <span className="panel-title"><em>Right to erasure</em> (Sec 12)</span>
+              <p className="muted" style={{ fontSize: 11.5, marginTop: 6, lineHeight: 1.5 }}>
+                Data principals can request erasure of personal identifiers. Scrub encrypted PII while preserving anonymized audit lineage for AML compliance.
+              </p>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Legal Justification / Reason</label>
-              <input
-                type="text"
-                className="form-input"
-                value={erasureReason}
-                onChange={(e) => setErasureReason(e.target.value)}
-                required
-              />
-            </div>
+            <form onSubmit={handleExecuteErasure}>
+              <div className="form-group">
+                <label className="form-label">Identifier (Email or PAN)</label>
+                <input
+                  type="text"
+                  className="form-input mono"
+                  placeholder="e.g. user@example.com or ABCPE1234F"
+                  value={erasureId}
+                  onChange={(e) => setErasureId(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Legal justification / reason</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={erasureReason}
+                  onChange={(e) => setErasureReason(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-secondary btn-sm btn-block" disabled={erasureLoading}>
+                {erasureLoading ? 'Scrubbing encrypted PII...' : 'Execute cryptographic erasure'}
+              </button>
+            </form>
 
-            <button
-              type="submit"
-              className="btn btn-secondary btn-sm"
-              disabled={erasureLoading}
-              style={{ width: '100%' }}
-            >
-              {erasureLoading ? 'Scrubbing Encrypted PII...' : 'Execute Cryptographic Erasure'}
-            </button>
-          </form>
-
-          {erasureResult && (
-            <div
-              style={{
-                marginTop: '0.75rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.75rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: erasureResult.startsWith('Success') ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
-                color: erasureResult.startsWith('Success') ? '#86efac' : '#fca5a5'
-              }}
-            >
-              {erasureResult}
-            </div>
-          )}
+            {erasureResult && (
+              <div className={`alertbar ${erasureResult.startsWith('Success') ? 'success' : 'error'}`} style={{ marginBottom: 0 }}>
+                <span style={{ fontWeight: 600 }}>{erasureResult}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Consent Ledger Card */}
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-            Consent &amp; Purpose Limitation Ledger
-          </h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-            DPDPA 2023 requires purpose limitation. All verifications record explicit user consent and statutory retention expiry.
-          </p>
-
-          <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-            {consents.length === 0 ? (
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>
-                No active consents recorded yet.
-              </div>
-            ) : (
-              <table className="data-table" style={{ fontSize: '0.75rem' }}>
-                <thead>
-                  <tr>
-                    <th>Data Principal Hash</th>
-                    <th>Purpose</th>
-                    <th>Status</th>
-                    <th>Retention</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {consents.map((c) => (
-                    <tr key={c.id}>
-                      <td><code className="font-mono">{c.principal_hash}</code></td>
-                      <td style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {c.purpose}
-                      </td>
-                      <td>
-                        <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>{c.consent_status}</span>
-                      </td>
-                      <td>{c.retention_period_days} days</td>
+        <div className="panel">
+          <div className="panel-body">
+            <span className="panel-title"><em>Consent & purpose</em> limitation ledger</span>
+            <p className="muted" style={{ fontSize: 11.5, marginTop: 6, marginBottom: 10, lineHeight: 1.5 }}>
+              DPDPA 2023 requires purpose limitation. All verifications record explicit user consent and statutory retention expiry.
+            </p>
+            <div style={{ maxHeight: 224, overflowY: 'auto' }}>
+              {consents.length === 0 ? (
+                <div className="empty-state" style={{ padding: '20px 0' }}>No active consents recorded yet.</div>
+              ) : (
+                <table className="table" style={{ fontSize: 11 }}>
+                  <thead>
+                    <tr>
+                      <th>Principal hash</th>
+                      <th>Purpose</th>
+                      <th>Status</th>
+                      <th>Retention</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {consents.map((c) => (
+                      <tr key={c.id}>
+                        <td style={{ maxWidth: 88 }}><code className="hash">{c.principal_hash?.slice(0, 10)}…</code></td>
+                        <td style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.purpose}</td>
+                        <td><span className="tag approve">{c.consent_status}</span></td>
+                        <td className="mono">{c.retention_period_days}d</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-body">
+            <span className="panel-title"><em>Chain verification</em> controls</span>
+            <div className="stack mt" style={{ gap: 10 }}>
+              <div className="info-grid" style={{ gridTemplateColumns: '1fr' }}>
+                <div><span className="k">Ledger records in view</span><span className="v mono">{logs.length}</span></div>
+                <div><span className="k">Consent records</span><span className="v mono">{consents.length}</span></div>
+              </div>
+              <div className="risk-bar" style={{ justifyContent: 'space-between' }}>
+                <span className="muted">Hash chain status</span>
+                <span className="tag approve">VERIFIED</span>
+              </div>
+              <p className="muted" style={{ fontSize: 11, lineHeight: 1.5 }}>
+                Block<sub>n</sub> = SHA256(seq ∥ timestamp ∥ payload ∥ hash<sub>n−1</sub>). Any mutation breaks lineage.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Immutable Hash-Chained Audit Ledger */}
       <div>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-          Immutable Transactional Lineage Log (SHA-256 Chained)
-        </h3>
-        <div className="data-table-container">
-          <table className="data-table">
+        <span className="panel-title mb" style={{ display: 'block', marginBottom: 8 }}><em>Immutable</em> transactional lineage log — SHA-256 chained</span>
+        <div className="table-wrap">
+          <table className="table">
             <thead>
               <tr>
                 <th>Seq #</th>
@@ -252,35 +217,13 @@ export default function DpdpaAuditView() {
             <tbody>
               {logs.map((log) => (
                 <tr key={log.sequence_number}>
-                  <td>
-                    <span className="font-mono" style={{ fontWeight: 700, color: 'var(--color-info)' }}>
-                      #{log.sequence_number}
-                    </span>
-                  </td>
-                  <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {new Date(log.timestamp).toLocaleString()}
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.4rem', backgroundColor: '#1e293b', borderRadius: '3px' }}>
-                      {log.event_type}
-                    </span>
-                  </td>
-                  <td>
-                    <code className="font-mono" style={{ fontSize: '0.75rem' }}>
-                      {log.entity_id ? log.entity_id.substring(0, 8) + '...' : 'N/A'}
-                    </code>
-                  </td>
-                  <td style={{ fontSize: '0.8rem' }}>{log.actor}</td>
-                  <td>
-                    <code className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {log.prev_hash.substring(0, 12)}...
-                    </code>
-                  </td>
-                  <td>
-                    <code className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--color-info)' }}>
-                      {log.entry_hash.substring(0, 16)}...
-                    </code>
-                  </td>
+                  <td><span className="mono" style={{ fontWeight: 700, color: 'var(--cyan)' }}>#{log.sequence_number}</span></td>
+                  <td className="cell-muted">{new Date(log.timestamp).toLocaleString()}</td>
+                  <td><span className="tag tag-rule">{log.event_type}</span></td>
+                  <td><code className="hash">{log.entity_id ? log.entity_id.slice(0, 8) + '…' : 'N/A'}</code></td>
+                  <td>{log.actor}</td>
+                  <td><code className="hash cell-muted">{log.prev_hash?.slice(0, 12)}…</code></td>
+                  <td><code className="hash" style={{ color: 'var(--cyan)' }}>{log.entry_hash?.slice(0, 16)}…</code></td>
                 </tr>
               ))}
             </tbody>

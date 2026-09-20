@@ -1,14 +1,97 @@
 import React from 'react';
 
-export default function MetricsOverview({ metrics, loading }) {
+function donutStyle(approve, review, reject) {
+  const total = Math.max(1, approve + review + reject);
+  const a = (approve / total) * 360;
+  const b = a + (review / total) * 360;
+  const stops = [
+    `var(--green) 0deg`,
+    `var(--green) ${a}deg`,
+    `var(--amber) ${a}deg`,
+    `var(--amber) ${b}deg`,
+    `var(--red) ${b}deg`,
+    `var(--red) 360deg`,
+  ];
+  return {
+    background: `conic-gradient(${stops.join(',')})`,
+    WebkitMask: 'radial-gradient(circle, transparent 55%, #000 56%)',
+    mask: 'radial-gradient(circle, transparent 55%, #000 56%)',
+  };
+}
+
+function Radar({ events }) {
+  const RADIUS = 76;
+  const blips = (events || []).slice(0, 16).map((evt, idx, arr) => {
+    const angle = (idx / Math.max(1, arr.length)) * Math.PI * 2 - Math.PI / 2;
+    const score = Number(evt.risk_score) || 0;
+    const radius = 10 + (Math.min(1, Math.max(0, score)) * 0.82) * RADIUS;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    const kind = evt.decision === 'APPROVE' ? 'is-approve' : evt.decision === 'REVIEW' ? 'is-review' : evt.decision === 'REJECT' ? 'is-reject' : 'is-risk';
+    return { x, y, kind, key: evt.id ?? idx };
+  });
+
+  return (
+    <div className="radar-wrap">
+      <div className="radar" aria-label="Risk proximity map">
+        <div className="radar-ring r1" />
+        <div className="radar-ring r2" />
+        <div className="radar-ring r3" />
+        <div className="radar-cross-h" />
+        <div className="radar-cross-v" />
+        <div className="radar-sweep" />
+        <div className="radar-core" />
+        {blips.map((b) => (
+          <span key={b.key} className={`radar-blip ${b.kind}`} style={{ left: `calc(50% + ${b.x}px)`, top: `calc(50% + ${b.y}px)` }} />
+        ))}
+        <span className="radar-label">Risk proximity</span>
+      </div>
+    </div>
+  );
+}
+
+function Sparkline({ events }) {
+  const lats = (events || []).slice(0, 14).map((e) => e.latency_ms ?? 0);
+  const max = Math.max(50, ...lats, 1);
+  const bars = lats.length ? lats : [0, 0, 0, 0, 0, 0];
+  return (
+    <div>
+      <div className="sparkline">
+        {bars.map((v, i) => {
+          const over = v > 50;
+          return (
+            <span
+              key={i}
+              className="bar"
+              style={{
+                height: `${Math.max(3, (v / max) * 100)}%`,
+                background: over
+                  ? 'linear-gradient(180deg, var(--red), rgba(251, 77, 109, 0.15))'
+                  : undefined,
+                boxShadow: over ? '0 0 12px -2px rgba(251, 77, 109, 0.5)' : undefined,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div className="spark-grid">
+        <span>{lats.length ? new Date(events[0]?.timestamp).toLocaleTimeString() : '—'}</span>
+        <span>window 14</span>
+        <span>live</span>
+      </div>
+    </div>
+  );
+}
+
+export default function MetricsOverview({ metrics, loading, events }) {
   if (loading && !metrics) {
     return (
-      <div className="metrics-grid">
+      <div className="kpis">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="metric-card" style={{ opacity: 0.6 }}>
-            <div className="metric-header">Loading...</div>
-            <div className="metric-value">--</div>
-            <div className="metric-sub">Fetching telemetry</div>
+          <div key={i} className="kpi panel" style={{ opacity: 0.55 }}>
+            <div className="kpi-label">Loading</div>
+            <div className="kpi-value">--</div>
+            <div className="kpi-sub">Fetching telemetry</div>
           </div>
         ))}
       </div>
@@ -23,62 +106,93 @@ export default function MetricsOverview({ metrics, loading }) {
   const reviews = metrics?.decision_distribution?.review ?? 0;
   const rejects = metrics?.decision_distribution?.reject ?? 0;
   const activeKeys = metrics?.infrastructure?.active_velocity_keys ?? 0;
-
-  const p95Color = p95 <= 50 ? 'var(--color-success)' : 'var(--color-danger)';
+  const slaOk = p95 <= 50;
 
   return (
-    <div className="metrics-grid">
-      <div className="metric-card">
-        <div className="metric-header">
-          <span>Latency Telemetry</span>
-          <span style={{ color: p95Color, fontSize: '0.75rem', fontWeight: 600 }}>
-            {p95 <= 50 ? 'SLA Compliant' : 'Breach'}
-          </span>
+    <>
+      <div className="kpis">
+        <div className={`kpi panel accent-${slaOk ? 'cyan' : 'red'}`}>
+          <div className="kpi-accent" />
+          <div className="kpi-label">
+            <span>Latency P95</span>
+            <span className="kpi-chip" style={{ color: slaOk ? 'var(--green)' : 'var(--red)', border: `1px solid ${slaOk ? 'rgba(52,211,153,.4)' : 'rgba(251,77,109,.4)'}`, background: slaOk ? 'var(--green-dim)' : 'var(--red-dim)' }}>
+              {slaOk ? 'SLA OK' : 'BREACH'}
+            </span>
+          </div>
+          <div className="kpi-value">
+            {p95} <small>ms</small>
+          </div>
+          <div className="kpi-sub font-mono">P50 {p50}ms · P99 {p99}ms · target &lt;50ms</div>
         </div>
-        <div className="metric-value" style={{ color: p95Color }}>
-          {p95} <span style={{ fontSize: '1rem', fontWeight: 500 }}>ms P95</span>
+
+        <div className="kpi panel accent-violet">
+          <div className="kpi-accent" />
+          <div className="kpi-label">
+            <span>Pipeline volume</span>
+            <span className="kpi-chip" style={{ color: 'var(--green)', border: '1px solid rgba(52,211,153,.4)', background: 'var(--green-dim)' }}>LIVE</span>
+          </div>
+          <div className="kpi-value">{total.toLocaleString()}</div>
+          <div className="kpi-sub">Real-time KYC &amp; transaction evaluations</div>
         </div>
-        <div className="metric-sub font-mono">
-          P50: {p50}ms · P99: {p99}ms (Target: &lt;50ms)
+
+        <div className="kpi panel accent-green">
+          <div className="kpi-accent" />
+          <div className="kpi-label">
+            <span>Decision distribution</span>
+            <span className="kpi-chip" style={{ color: 'var(--text-3)' }}>PASS · REVIEW · BLOCK</span>
+          </div>
+          <div className="kpi-value">
+            <span style={{ color: 'var(--green)' }}>{approvals.toLocaleString()}</span>
+            <small> / </small>
+            <span style={{ color: 'var(--amber)' }}>{reviews.toLocaleString()}</span>
+            <small> / </small>
+            <span style={{ color: 'var(--red)' }}>{rejects.toLocaleString()}</span>
+          </div>
+          <div className="kpi-sub">Approve / manual review / hard reject</div>
+        </div>
+
+        <div className="kpi panel accent-amber">
+          <div className="kpi-accent" />
+          <div className="kpi-label">
+            <span>Velocity windows</span>
+            <span className="kpi-chip" style={{ color: 'var(--violet)', border: '1px solid rgba(139,92,246,.4)', background: 'var(--violet-dim)' }}>SLIDING</span>
+          </div>
+          <div className="kpi-value font-mono">{activeKeys.toLocaleString()}</div>
+          <div className="kpi-sub">Active IP / device rate-limit windows</div>
         </div>
       </div>
 
-      <div className="metric-card">
-        <div className="metric-header">
-          <span>Total Pipeline Volume</span>
-          <span>Live</span>
+      <div className="signal-row">
+        <div className="panel" style={{ padding: '14px' }}>
+          <div className="stat-title">Risk proximity map <span className="hash">— live decision stream</span></div>
+          <div className="radar-grid">
+            <Radar events={events} />
+            <div className="radar-legend">
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--green)' }} />Approve</span>
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--amber)' }} />Manual review</span>
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--red)' }} />Hard reject</span>
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--violet)' }} />Flagged</span>
+            </div>
+          </div>
         </div>
-        <div className="metric-value">{total.toLocaleString()}</div>
-        <div className="metric-sub">
-          Real-time KYC &amp; Transaction Evaluations
-        </div>
-      </div>
 
-      <div className="metric-card">
-        <div className="metric-header">
-          <span>Decision Distribution</span>
-          <span>Ratio</span>
+        <div className="panel" style={{ padding: '14px' }}>
+          <div className="stat-title">Decision split</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '92px', height: '92px', borderRadius: '50%', flex: 'none', ...donutStyle(approvals, reviews, rejects), boxShadow: '0 0 24px -8px rgba(42,228,255,.35)' }} />
+            <div className="donut-legend grow">
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--green)' }} />Approved<b>{approvals.toLocaleString()}</b></span>
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--amber)' }} />Review<b>{reviews.toLocaleString()}</b></span>
+              <span className="legend-row"><span className="legend-swatch" style={{ background: 'var(--red)' }} />Blocked<b>{rejects.toLocaleString()}</b></span>
+            </div>
+          </div>
         </div>
-        <div className="metric-value" style={{ display: 'flex', gap: '0.75rem', alignItems: 'baseline' }}>
-          <span style={{ color: 'var(--color-success)', fontSize: '1.4rem' }}>{approvals}</span>
-          <span style={{ color: 'var(--color-warning)', fontSize: '1.2rem' }}>{reviews}</span>
-          <span style={{ color: 'var(--color-danger)', fontSize: '1.2rem' }}>{rejects}</span>
-        </div>
-        <div className="metric-sub">
-          Pass / Manual Review / Blocked
-        </div>
-      </div>
 
-      <div className="metric-card">
-        <div className="metric-header">
-          <span>Velocity &amp; Cache</span>
-          <span>Sliding Window</span>
-        </div>
-        <div className="metric-value font-mono">{activeKeys}</div>
-        <div className="metric-sub">
-          Active IP/Device rate limit windows tracked
+        <div className="panel" style={{ padding: '14px' }}>
+          <div className="stat-title">Engine latency <span className="hash">— sub-50ms SLA envelope</span></div>
+          <Sparkline events={events} />
         </div>
       </div>
-    </div>
+    </>
   );
 }

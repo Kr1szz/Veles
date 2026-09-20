@@ -55,42 +55,37 @@ export default function ReviewQueueModal({ user, onReviewSubmitted }) {
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+    <div className="stack mb">
+      <div className="hstack-between">
         <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Human-in-the-Loop Analyst Review Queue</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700 }}>Human-in-the-loop analyst review queue</h2>
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
             Review flagged high-risk verifications requiring manual oversight under RBI KYC / Fraud Guidelines.
           </p>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={fetchQueue} disabled={loading}>
-          {loading ? 'Refreshing...' : 'Refresh Queue'}
+          {loading ? 'Refreshing...' : 'Refresh queue'}
         </button>
       </div>
 
       {statusMsg && (
-        <div
-          style={{
-            padding: '0.6rem 0.85rem',
-            marginBottom: '1rem',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.8rem',
-            backgroundColor: statusMsg.startsWith('Error') ? 'var(--color-danger-bg)' : 'var(--color-success-bg)',
-            color: statusMsg.startsWith('Error') ? '#fca5a5' : '#86efac',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}
-        >
-          {statusMsg}
+        <div className={`alertbar ${statusMsg.startsWith('Error') ? 'error' : 'success'}`}>
+          <span className="alert-title">{statusMsg.startsWith('Error') ? '✕' : '✓'} {statusMsg.startsWith('Error') ? 'Failed' : 'Committed to ledger'}</span>
+          <span style={{ fontWeight: 600 }}>{statusMsg}</span>
         </div>
       )}
 
       {queue.length === 0 ? (
-        <div className="data-table-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          ✓ All verification queues clear! Zero pending manual reviews.
+        <div className="panel">
+          <div className="empty-state">
+            <div className="hstack" style={{ justifyContent: 'center', color: 'var(--green)', fontWeight: 700 }}>
+              <span style={{ color: 'var(--green)' }}>✓</span> All verification queues clear — zero pending manual reviews.
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="data-table-container">
-          <table className="data-table">
+        <div className="table-wrap">
+          <table className="table">
             <thead>
               <tr>
                 <th>Entity</th>
@@ -105,33 +100,21 @@ export default function ReviewQueueModal({ user, onReviewSubmitted }) {
             <tbody>
               {queue.map((item) => (
                 <tr key={item.id}>
-                  <td>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.4rem', backgroundColor: '#1e293b', borderRadius: '3px' }}>
-                      {item.entity_type}
-                    </span>
-                  </td>
+                  <td><span className="tag tag-kyc">{item.entity_type}</span></td>
                   <td>
                     <strong>{item.name_masked || item.id_masked || 'N/A'}</strong>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {item.email_masked || item.id_type || ''}
-                    </div>
+                    <div className="cell-sub">{item.email_masked || item.id_type || ''}</div>
                   </td>
                   <td>
-                    <span className="font-mono" style={{ color: 'var(--color-warning)', fontWeight: 600 }}>
+                    <span className="mono" style={{ color: 'var(--amber)', fontWeight: 700 }}>
                       {(item.risk_score * 100).toFixed(1)}%
                     </span>
                   </td>
-                  <td>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--color-warning)' }}>
-                      {item.rules_triggered?.length || 0} rule(s)
-                    </span>
+                  <td style={{ color: 'var(--amber)' }}>
+                    {item.rules_triggered?.length || 0} rule(s)
                   </td>
-                  <td className="font-mono" style={{ fontSize: '0.8rem' }}>
-                    {item.latency_ms} ms
-                  </td>
-                  <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {new Date(item.created_at).toLocaleTimeString()}
-                  </td>
+                  <td className="mono">{item.latency_ms} ms</td>
+                  <td className="cell-muted">{new Date(item.created_at).toLocaleTimeString()}</td>
                   <td>
                     <button
                       className="btn btn-primary btn-sm"
@@ -152,51 +135,41 @@ export default function ReviewQueueModal({ user, onReviewSubmitted }) {
         </div>
       )}
 
-      {/* Review Modal Dialog */}
       {selectedCase && (
         <div className="modal-overlay" onClick={() => setSelectedCase(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>
-                Review Case: {selectedCase.name_masked || selectedCase.id_masked}
-              </h3>
-              <button
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}
-                onClick={() => setSelectedCase(null)}
-              >
-                ✕
-              </button>
+              <h3>Review case: {selectedCase.name_masked || selectedCase.id_masked}</h3>
+              <button className="modal-close" onClick={() => setSelectedCase(null)}>✕</button>
             </div>
 
-            <div style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-              <div style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                <strong>Verification ID:</strong> <code className="font-mono">{selectedCase.id}</code>
-              </div>
-              <div style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                <strong>Current Risk Score:</strong>{' '}
-                <span className="font-mono" style={{ color: 'var(--color-warning)', fontWeight: 600 }}>
-                  {(selectedCase.risk_score * 100).toFixed(1)}%
-                </span>
+            <div className="mb" style={{ fontSize: 12.5 }}>
+              <div className="info-grid mb">
+                <div><span className="k">Verification ID</span><span className="v mono">{selectedCase.id}</span></div>
+                <div>
+                  <span className="k">Risk score</span>
+                  <span className="v mono" style={{ color: 'var(--amber)' }}>{(selectedCase.risk_score * 100).toFixed(1)}%</span>
+                </div>
               </div>
 
-              {/* Triggered rules in review case */}
-              {selectedCase.rules_triggered && selectedCase.rules_triggered.length > 0 && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                    Triggered Warning Rules
+              {selectedCase.rules_triggered?.length > 0 && (
+                <div>
+                  <div className="section-label mb" style={{ marginBottom: 6 }}>Triggered warning rules</div>
+                  <div className="chip-list">
+                    {selectedCase.rules_triggered.map((r, i) => (
+                      <div key={i}>
+                        <span className="tag tag-rule rule-tag">{r.rule}</span>
+                        {r.detail}
+                      </div>
+                    ))}
                   </div>
-                  {selectedCase.rules_triggered.map((r, i) => (
-                    <div key={i} style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '3px', marginBottom: '0.25rem' }}>
-                      <strong>{r.rule}:</strong> {r.detail}
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
 
             <form onSubmit={handleSubmitOverride}>
               <div className="form-group">
-                <label className="form-label">Analyst Decision Override</label>
+                <label className="form-label">Analyst decision override</label>
                 <select
                   className="form-select"
                   value={overrideDecision}
@@ -210,7 +183,7 @@ export default function ReviewQueueModal({ user, onReviewSubmitted }) {
 
               <div className="form-group">
                 <label className="form-label">
-                  Audit Notes &amp; Justification <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  Audit notes & justification <span style={{ color: 'var(--red)' }}>*</span>
                 </label>
                 <textarea
                   className="form-textarea"
@@ -222,20 +195,12 @@ export default function ReviewQueueModal({ user, onReviewSubmitted }) {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedCase(null)}
-                >
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedCase(null)}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Committing to Ledger...' : 'Commit Decision'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Committing to ledger...' : 'Commit decision'}
                 </button>
               </div>
             </form>

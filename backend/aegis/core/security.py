@@ -1,6 +1,7 @@
 import hmac
 import hashlib
 import re
+import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 from cryptography.fernet import Fernet
@@ -9,9 +10,20 @@ import bcrypt
 
 from aegis.config import settings
 
+JWT_ISSUER = "veles-shield"
+JWT_AUDIENCE = "veles-analyst-dashboard"
+COOKIE_NAME_PLAIN = "veles_session"
+COOKIE_NAME_HOST_PREFIXED = "__Host-veles_session"
 
 # Initialize Fernet symmetric encryption cipher
 _cipher = Fernet(settings.AEGIS_ENCRYPTION_KEY.encode("utf-8"))
+
+_DUMMY_BCRYPT = bcrypt.hashpw(b"veles-dummy-credential-constant-time-check", bcrypt.gensalt(rounds=12))
+
+
+def cookie_name(secure: bool) -> str:
+    """__Host- prefixed cookie requires Secure + Path=/ + host-only, enforced in auth.py."""
+    return COOKIE_NAME_HOST_PREFIXED if secure else COOKIE_NAME_PLAIN
 
 
 def encrypt_pii(plaintext: Optional[str]) -> Optional[str]:
@@ -115,6 +127,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
+def verify_password_constant_time(plain_password: str, hashed_password: Optional[str]) -> bool:
+    """
+    Always runs a bcrypt comparison to avoid timing-based username enumeration,
+    even when the supplied hash does not exist (uses a dummy hash).
+    """
+    target = hashed_password or _DUMMY_BCRYPT.decode("utf-8")
+    return verify_password(plain_password, target)
+
+
 # JWT Token Management
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -123,13 +144,25 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
         expire = now + expires_delta
     else:
         expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"iat": now, "exp": expire})
+    to_encode.update({
+        "iat": now,
+        "exp": expire,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "jti": str(uuid.uuid4())
+    })
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def decode_access_token(token: str) -> Dict[str, Any]:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE
+        )
         return payload
     except jwt.PyJWTError as e:
         raise ValueError(f"Invalid or expired token: {e}") from e

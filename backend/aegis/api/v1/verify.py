@@ -20,13 +20,19 @@ logger = logging.getLogger("aegis.api.verify")
 @router.post("/kyc", response_model=RiskEvaluationResponse, status_code=status.HTTP_200_OK)
 async def verify_kyc(
     payload: KYCVerificationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: object = Depends(require_role(["analyst", "auditor"]))
 ):
     """
     Sub-50ms Identity & KYC Risk Engine (Aligned with IDfy OnboardIQ & Privy).
     Executes velocity checks, deterministic rules, Shannon entropy lexical analysis,
     Verhoeff checksum, DPDPA column-level encryption, and immutable audit logging.
     """
+    if not getattr(payload, "consent_given", True):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="KYC verification requires explicit consent (consent_given=true) under DPDPA"
+        )
     try:
         result = await verification_pipeline.process_kyc_verification(payload, db)
         return result
@@ -41,7 +47,8 @@ async def verify_kyc(
 @router.post("/transaction", response_model=RiskEvaluationResponse, status_code=status.HTTP_200_OK)
 async def verify_transaction(
     payload: TransactionVerificationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: object = Depends(require_role(["analyst", "auditor"]))
 ):
     """
     Sub-50ms Real-Time Transaction Risk Engine (Aligned with IDfy OneRisk).

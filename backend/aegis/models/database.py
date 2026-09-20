@@ -58,17 +58,22 @@ class VerificationRecord(Base):
     # Network & Device Attributes
     ip_address = Column(String(45), nullable=True, index=True)
     device_fingerprint = Column(String(128), nullable=True, index=True)
+    device_fingerprint_encrypted = Column(Text, nullable=True)
     
     # Risk Decision & Metrics
     decision = Column(String(16), nullable=False, index=True)  # APPROVE, REVIEW, REJECT
     risk_score = Column(Float, nullable=False)
-    latency_ms = Column(Float, nullable=False)
+    latency_ms = Column(Float, nullable=False, index=True)
     
     # Serialized JSON audit breakdowns
     rules_triggered = Column(Text, nullable=True)
     anomaly_details = Column(Text, nullable=True)
     
     created_at = Column(DateTime, default=utc_now, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ix_verification_decision_created", "decision", "created_at"),
+    )
 
     reviews = relationship("AnalystReview", back_populates="verification", cascade="all, delete-orphan")
 

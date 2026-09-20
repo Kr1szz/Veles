@@ -1,9 +1,13 @@
 import base64
+import logging
 import os
+import secrets
 from typing import List, Optional
 from cryptography.fernet import Fernet
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger("aegis.config")
 
 
 class Settings(BaseSettings):
@@ -18,6 +22,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"
 
     # Security: Secrets & Token Configuration
     # In production, these should be supplied via environment variables
@@ -25,6 +30,19 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 hours
     ALGORITHM: str = "HS256"
+
+    # API documentation exposure. Defaults to disabled in production, enabled otherwise.
+    ENABLE_DOCS: Optional[bool] = None
+
+    # Cookie & host hardening
+    COOKIE_SECURE: Optional[bool] = None
+    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "testserver"]
+
+    # Demo operator accounts (seeded only outside production)
+    DEMO_SEED_ENABLED: bool = True
+    DEMO_ANALYST_USERNAME: str = "demo.analyst"
+    DEMO_AUDITOR_USERNAME: str = "demo.auditor"
+    DEMO_PASSWORD: Optional[str] = None
 
     # DPDPA Column-Level Encryption Key (32-byte urlsafe base64 for Fernet / AES)
     AEGIS_ENCRYPTION_KEY: str = ""
@@ -57,6 +75,20 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
     ]
+
+    @field_validator("SECRET_KEY", mode="before")
+    @classmethod
+    def validate_secret_key(cls, value: object) -> str:
+        raw = value or ""
+        if raw:
+            return str(raw)
+        if os.environ.get("ENVIRONMENT", "development").lower() == "production":
+            return ""
+        logger.warning(
+            "SECRET_KEY is unset; generating an ephemeral development key. "
+            "Set SECRET_KEY in production (validate_production_secrets will hard-fail otherwise)."
+        )
+        return secrets.token_hex(32)
 
     @field_validator("DEBUG", mode="before")
     @classmethod

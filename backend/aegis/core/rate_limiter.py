@@ -77,6 +77,14 @@ class SlidingWindowRateLimiter:
             self._redis_available = False
             return False
 
+    async def active_key_count(self) -> int:
+        """Number of active sliding-window keys held by the memory fallback store."""
+        return len(self._memory_store)
+
+    def redis_connected(self) -> bool:
+        """Synchronous snapshot of Redis connectivity state."""
+        return bool(self._redis_available)
+
     async def check_velocity(
         self,
         key: str,
@@ -128,22 +136,24 @@ class SlidingWindowRateLimiter:
                 return False, count, retry_after
 
     async def reset(self, key: Optional[str] = None):
-        """Reset rate limiter state (primarily for tests)"""
+        """Reset rate limiter state (primarily for tests).
+
+        A full Redis DB flush is intentionally not performed; only the in-memory
+        fallback store is cleared when no explicit key is supplied.
+        """
         async with self._memory_lock:
             if key:
                 self._memory_store.pop(key, None)
             else:
                 self._memory_store.clear()
 
-        redis_client = await self._get_redis()
-        if redis_client:
-            try:
-                if key:
+        if key:
+            redis_client = await self._get_redis()
+            if redis_client:
+                try:
                     await redis_client.delete(key)
-                else:
-                    await redis_client.flushdb()
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
 
 # Global singleton instance

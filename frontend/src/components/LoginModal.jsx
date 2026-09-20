@@ -26,15 +26,10 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Analyst Sign In</h3>
-          <button
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}
-            onClick={onClose}
-          >
-            ✕
-          </button>
+          <h3>Analyst sign in</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -45,6 +40,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               className="form-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoFocus
               required
             />
           </div>
@@ -60,18 +56,14 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             />
           </div>
 
-          {error && (
-            <div style={{ padding: '0.5rem', backgroundColor: 'var(--color-danger-bg)', color: '#fca5a5', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', marginBottom: '1rem' }}>
-              {error}
-            </div>
-          )}
+          {error && <div className="alertbar error" style={{ marginBottom: 0 }}><span className="alert-title">Authentication failed</span></div>}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+          <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? 'Authenticating...' : 'Sign in'}
             </button>
           </div>
         </form>

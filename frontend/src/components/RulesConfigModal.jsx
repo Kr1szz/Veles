@@ -13,56 +13,50 @@ export default function RulesConfigModal() {
   }, []);
 
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading rule configurations...</div>;
+    return <div className="empty-state">Loading rule configurations...</div>;
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Active Rule Engine &amp; Threshold Configuration</h2>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+    <div className="stack mb">
+      <div>
+        <h2 style={{ fontSize: 15, fontWeight: 700 }}>Active rule engine & threshold configuration</h2>
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
           High-performance rule matrix combining deterministic checks, Shannon entropy, and statistical EWMA variance.
         </p>
       </div>
 
-      {/* Threshold Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Auto-Approve Cutoff</div>
-          <div className="font-mono" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-success)' }}>
-            &le; {config?.system_thresholds?.auto_approve_cutoff * 100}%
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Instant approval without review</div>
+      <div className="kpis" style={{ marginBottom: 0 }}>
+        <div className="kpi panel accent-green">
+          <div className="kpi-accent" />
+          <div className="kpi-label"><span>Auto-approve cutoff</span><span className="kpi-chip" style={{ color: 'var(--text-3)' }}>INSTANT</span></div>
+          <div className="kpi-value mono" style={{ color: 'var(--green)' }}>&le; {(config?.system_thresholds?.auto_approve_cutoff * 100)}%</div>
+          <div className="kpi-sub">Approved without human review</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Manual Review Range</div>
-          <div className="font-mono" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-warning)' }}>
-            30% – 70%
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Routed to human-in-the-loop analyst</div>
+        <div className="kpi panel accent-amber">
+          <div className="kpi-accent" />
+          <div className="kpi-label"><span>Manual review range</span><span className="kpi-chip" style={{ color: 'var(--text-3)' }}>HITL</span></div>
+          <div className="kpi-value mono" style={{ color: 'var(--amber)' }}>30% – 70%</div>
+          <div className="kpi-sub">Routed to in-loop analyst</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Hard Reject Threshold</div>
-          <div className="font-mono" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-danger)' }}>
-            &ge; {config?.system_thresholds?.manual_review_cutoff * 100}%
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>High-confidence fraud decline</div>
+        <div className="kpi panel accent-red">
+          <div className="kpi-accent" />
+          <div className="kpi-label"><span>Hard reject threshold</span><span className="kpi-chip" style={{ color: 'var(--text-3)' }}>BLOCK</span></div>
+          <div className="kpi-value mono" style={{ color: 'var(--red)' }}>&ge; {(config?.system_thresholds?.manual_review_cutoff * 100)}%</div>
+          <div className="kpi-sub">High-confidence fraud decline</div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.85rem' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SLA Latency Target</div>
-          <div className="font-mono" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-info)' }}>
-            &lt; {config?.system_thresholds?.sla_max_latency_ms} ms
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Targeting sub-50ms roundtrip</div>
+        <div className="kpi panel accent-cyan">
+          <div className="kpi-accent" />
+          <div className="kpi-label"><span>SLA latency target</span><span className="kpi-chip" style={{ color: 'var(--text-3)' }}>ENGINE</span></div>
+          <div className="kpi-value mono" style={{ color: 'var(--cyan)' }}>&lt; {config?.system_thresholds?.sla_max_latency_ms} ms</div>
+          <div className="kpi-sub">Sub-50ms round-trip target</div>
         </div>
       </div>
 
-      {/* Rules Table */}
-      <div className="data-table-container">
-        <table className="data-table">
+      <div className="table-wrap">
+        <table className="table">
           <thead>
             <tr>
               <th>Rule ID</th>
@@ -75,24 +69,14 @@ export default function RulesConfigModal() {
           <tbody>
             {config?.rules?.map((r) => (
               <tr key={r.id}>
-                <td><code className="font-mono" style={{ fontWeight: 600 }}>{r.id}</code></td>
+                <td><code className="mono" style={{ fontWeight: 700, color: 'var(--cyan)' }}>{r.id}</code></td>
                 <td style={{ fontWeight: 500 }}>{r.name}</td>
-                <td>
-                  <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.4rem', backgroundColor: '#1e293b', borderRadius: '3px' }}>
-                    {r.type}
-                  </span>
-                </td>
-                <td className="font-mono" style={{ fontSize: '0.8rem' }}>
+                <td><span className="tag tag-neutral">{r.type}</span></td>
+                <td className="mono" style={{ fontSize: 11.5 }}>
                   {r.threshold || r.specification || (r.active_domains_count ? `${r.active_domains_count} domains` : '') || (r.high_threshold ? `Entropy > ${r.high_threshold}` : 'Default')}
                 </td>
                 <td>
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: r.action === 'HARD_REJECT' ? 'var(--color-danger)' : r.action === 'FLAG_HIGH_RISK' ? 'var(--color-warning)' : 'var(--color-info)'
-                    }}
-                  >
+                  <span className={`tag ${r.action === 'HARD_REJECT' ? 'reject' : r.action === 'FLAG_HIGH_RISK' ? 'review' : 'approve'}`}>
                     {r.action}
                   </span>
                 </td>

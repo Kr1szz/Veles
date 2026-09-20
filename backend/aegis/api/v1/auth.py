@@ -1,3 +1,4 @@
+import asyncio
 from datetime import timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
@@ -7,11 +8,41 @@ from sqlalchemy.orm import Session
 from aegis.config import settings
 from aegis.models.database import User
 from aegis.models.schemas import LoginRequest, TokenResponse
-from aegis.core.security import verify_password, create_access_token, decode_access_token
+from aegis.core.rate_limiter import rate_limiter
+from aegis.core.middleware import get_client_ip
+from aegis.core.security import (
+    verify_password_constant_time,
+    create_access_token,
+    decode_access_token,
+    cookie_name
+)
 from aegis.services.storage import get_db
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security_scheme = HTTPBearer(auto_error=False)
+
+LOGIN_THROTTLE_PER_MIN = 10
+
+
+def _cookie_secure() -> bool:
+    if settings.COOKIE_SECURE is not None:
+        return settings.COOKIE_SECURE
+    return settings.ENVIRONMENT.lower() == "production"
+
+
+async def _throttle_login(request: Request) -> None:
+    client_ip = get_client_ip(request)
+    allowed, _count, retry_after = await rate_limiter.check_velocity(
+        key=f"login:{client_ip}",
+        limit=LOGIN_THROTTLE_PER_MIN,
+        window_seconds=60
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts, retry later",
+            headers={"Retry-After": f"{max(1, int(retry_after))}"}
+        )
 
 
 async def get_current_user(
@@ -19,7 +50,8 @@ async def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ) -> User:
-    token = credentials.credentials if credentials else request.cookies.get("veles_session")
+    session_cookie = cookie_name(_cookie_secure())
+    token = credentials.credentials if credentials else request.cookies.get(session_cookie)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,9 +84,13 @@ def require_role(allowed_roles: list[str]):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == request.username).first()
-    if not user or not verify_password(request.password, user.hashed_password):
+async def login(request: Request, response: Response, db: Session = Depends(get_db), body: LoginRequest = ...):
+    await _throttle_login(request)
+
+    user = db.query(User).filter(User.username == body.username).first()
+    password_ok = verify_password_constant_time(body.password, user.hashed_password if user else None)
+    if not user or not user.is_active or not password_ok:
+        await asyncio.sleep(0.5)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
@@ -66,9 +102,10 @@ def login(request: LoginRequest, response: Response, db: Session = Depends(get_d
         expires_delta=expires
     )
 
+    secure = _cookie_secure()
     response.set_cookie(
-        key="veles_session", value=token, httponly=True,
-        secure=settings.ENVIRONMENT.lower() == "production", samesite="strict",
+        key=cookie_name(secure), value=token, httponly=True,
+        secure=secure, samesite="strict",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/"
     )
     return TokenResponse(
@@ -82,7 +119,7 @@ def login(request: LoginRequest, response: Response, db: Session = Depends(get_d
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response):
-    response.delete_cookie("veles_session", path="/")
+    response.delete_cookie(cookie_name(_cookie_secure()), path="/")
 
 
 @router.get("/me")

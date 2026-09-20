@@ -1,8 +1,9 @@
 import json
 import logging
+import threading
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Tuple
-from sqlalchemy import create_engine, desc, func
+from sqlalchemy import create_engine, desc, func, text
 from sqlalchemy.orm import sessionmaker, Session
 
 from aegis.config import settings
@@ -13,6 +14,8 @@ from aegis.core.security import encrypt_pii, decrypt_pii, mask_pii_field, comput
 from aegis.core.audit import ImmutableAuditLedger
 
 logger = logging.getLogger("aegis.services.storage")
+
+_audit_lock = threading.Lock()
 
 # Configure database engine
 connect_args = {}
@@ -31,6 +34,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def init_db():
     """Initializes schema. User provisioning is an explicit administrator task."""
     Base.metadata.create_all(bind=engine)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE verification_records ADD COLUMN device_fingerprint_encrypted TEXT"))
+            conn.commit()
+    except Exception:
+        pass
 
 
 def get_db():
@@ -57,34 +66,35 @@ class StorageService:
         action_details: Dict[str, Any]
     ) -> AuditLog:
         """
-        Appends an entry to the cryptographic hash chain.
+        Appends an entry to the cryptographic hash chain under process-level lock.
         """
-        last_log = db.query(AuditLog).order_by(desc(AuditLog.sequence_number)).first()
-        next_seq = (last_log.sequence_number + 1) if last_log else 1
-        prev_hash = last_log.entry_hash if last_log else ImmutableAuditLedger.GENESIS_HASH
+        with _audit_lock:
+            last_log = db.query(AuditLog).order_by(desc(AuditLog.sequence_number)).first()
+            next_seq = (last_log.sequence_number + 1) if last_log else 1
+            prev_hash = last_log.entry_hash if last_log else ImmutableAuditLedger.GENESIS_HASH
 
-        entry_data = ImmutableAuditLedger.create_entry(
-            sequence_number=next_seq,
-            event_type=event_type,
-            entity_id=entity_id,
-            actor=actor,
-            action_details=action_details,
-            prev_hash=prev_hash
-        )
+            entry_data = ImmutableAuditLedger.create_entry(
+                sequence_number=next_seq,
+                event_type=event_type,
+                entity_id=entity_id,
+                actor=actor,
+                action_details=action_details,
+                prev_hash=prev_hash
+            )
 
-        audit_entry = AuditLog(
-            sequence_number=entry_data["sequence_number"],
-            timestamp=entry_data["timestamp"],
-            event_type=entry_data["event_type"],
-            entity_id=entry_data["entity_id"],
-            actor=entry_data["actor"],
-            action_details=json.dumps(entry_data["action_details"]),
-            prev_hash=entry_data["prev_hash"],
-            entry_hash=entry_data["entry_hash"]
-        )
-        db.add(audit_entry)
-        db.flush()
-        return audit_entry
+            audit_entry = AuditLog(
+                sequence_number=entry_data["sequence_number"],
+                timestamp=entry_data["timestamp"],
+                event_type=entry_data["event_type"],
+                entity_id=entry_data["entity_id"],
+                actor=entry_data["actor"],
+                action_details=json.dumps(entry_data["action_details"]),
+                prev_hash=entry_data["prev_hash"],
+                entry_hash=entry_data["entry_hash"]
+            )
+            db.add(audit_entry)
+            db.flush()
+            return audit_entry
 
     @classmethod
     def save_kyc_verification(
@@ -113,12 +123,14 @@ class StorageService:
         email_enc = encrypt_pii(email)
         phone_enc = encrypt_pii(phone)
         id_enc = encrypt_pii(id_number)
+        device_fp_enc = encrypt_pii(device_fingerprint)
 
         # Generate masked representations for UI & logs
         full_name_msk = mask_pii_field("name", full_name)
         email_msk = mask_pii_field("email", email)
         phone_msk = mask_pii_field("phone", phone)
         id_msk = mask_pii_field(id_type or "id", id_number)
+        device_fp_msk = mask_pii_field("device", device_fingerprint) if device_fingerprint else None
 
         # Generate HMAC blind index for queryability without plaintext exposure
         id_blind = compute_blind_index(id_number)
@@ -138,7 +150,8 @@ class StorageService:
             id_blind_index=id_blind,
             email_blind_index=email_blind,
             ip_address=ip_address,
-            device_fingerprint=device_fingerprint,
+            device_fingerprint=device_fp_msk,
+            device_fingerprint_encrypted=device_fp_enc,
             decision=decision,
             risk_score=risk_score,
             latency_ms=latency_ms,
@@ -197,6 +210,8 @@ class StorageService:
         Persists financial transaction risk assessment.
         """
         user_blind = compute_blind_index(user_id)
+        device_fp_enc = encrypt_pii(device_fingerprint)
+        device_fp_msk = mask_pii_field("device", device_fingerprint) if device_fingerprint else None
 
         rec = VerificationRecord(
             entity_type="TRANSACTION",
@@ -205,7 +220,8 @@ class StorageService:
             amount=amount,
             currency=currency,
             ip_address=ip_address,
-            device_fingerprint=device_fingerprint,
+            device_fingerprint=device_fp_msk,
+            device_fingerprint_encrypted=device_fp_enc,
             decision=decision,
             risk_score=risk_score,
             latency_ms=latency_ms,
@@ -308,10 +324,15 @@ class StorageService:
             r.email_encrypted = None
             r.phone_encrypted = None
             r.id_number_encrypted = None
+            r.device_fingerprint_encrypted = None
             r.full_name_masked = "[ERASED_UNDER_DPDPA]"
             r.email_masked = "[ERASED_UNDER_DPDPA]"
             r.phone_masked = "[ERASED_UNDER_DPDPA]"
             r.id_number_masked = "[ERASED_UNDER_DPDPA]"
+            r.device_fingerprint = "[ERASED_UNDER_DPDPA]"
+            r.ip_address = "[ERASED_UNDER_DPDPA]"
+            r.id_blind_index = None
+            r.email_blind_index = None
 
             cls.log_audit_event(
                 db=db,
@@ -320,7 +341,10 @@ class StorageService:
                 actor=actor,
                 action_details={
                     "reason": reason,
-                    "erased_fields": ["full_name", "email", "phone", "id_number"]
+                    "erased_fields": [
+                        "full_name", "email", "phone", "id_number",
+                        "device_fingerprint", "ip_address", "blind_indexes"
+                    ]
                 }
             )
 
