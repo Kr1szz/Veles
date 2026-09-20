@@ -36,7 +36,23 @@ coverage.xml
 
 # Environment variables & local secrets
 .env
-.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.token
+secrets/
+credentials/
+service-account*.json
+*service_account*.json
+
+# Codex & local AI assistant configs
+.codex/*
+!.codex/*.example
 
 # Logs
 *.log
