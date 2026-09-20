@@ -10,9 +10,10 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - SECRET_KEY=veles-shield-production-secret-key-must-be-rotated-32bytes
-      - AEGIS_ENCRYPTION_KEY=c2VjdXJlLWRwZHBhLWFlZ2lzLXRydXN0LTIwMjYtMDAwMSE=
-      - DATABASE_URL=postgresql+psycopg2://veles_user:veles_secure_pass_2026@postgres:5432/veles_shield
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your deployment environment}
+      - AEGIS_ENCRYPTION_KEY=${VELES_ENCRYPTION_KEY:?Set VELES_ENCRYPTION_KEY in your deployment environment}
+      - VELES_ENCRYPTION_KEY=${VELES_ENCRYPTION_KEY:?Set VELES_ENCRYPTION_KEY in your deployment environment}
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
       - REDIS_ENABLED=true
       - SLA_MAX_LATENCY_MS=50.0
@@ -48,9 +49,9 @@ services:
     container_name: veles-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=veles_user
-      - POSTGRES_PASSWORD=veles_secure_pass_2026
-      - POSTGRES_DB=veles_shield
+      - POSTGRES_USER=${POSTGRES_USER:?Set POSTGRES_USER in your deployment environment}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your deployment environment}
+      - POSTGRES_DB=${POSTGRES_DB:?Set POSTGRES_DB in your deployment environment}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:

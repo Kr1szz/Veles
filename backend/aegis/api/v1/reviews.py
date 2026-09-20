@@ -1,4 +1,5 @@
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -6,16 +7,18 @@ from sqlalchemy import desc
 from aegis.models.schemas import AnalystReviewRequest
 from aegis.models.database import VerificationRecord, User
 from aegis.services.storage import get_db, StorageService
-from aegis.api.v1.auth import get_current_user
+from aegis.api.v1.auth import require_role
 
 router = APIRouter(prefix="/reviews", tags=["Analyst Review Queue"])
+logger = logging.getLogger("aegis.api.reviews")
 
 
 @router.get("/queue")
 def get_review_queue(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_role(["analyst", "auditor"]))
 ):
     """
     Returns verifications flagged with REVIEW status for human-in-the-loop analyst decisions.
@@ -52,7 +55,7 @@ def get_review_queue(
 def override_decision(
     verification_id: str,
     payload: AnalystReviewRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["analyst"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -78,5 +81,6 @@ def override_decision(
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Override failed: {e}")
+    except Exception:
+        logger.exception("Analyst override failed")
+        raise HTTPException(status_code=500, detail="Override could not be recorded")

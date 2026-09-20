@@ -32,7 +32,7 @@ Authenticates an analyst or administrator and returns an encrypted JWT bearer to
 ```json
 {
   "username": "analyst_admin",
-  "password": "AegisSecure@2026"
+  "password": "your-provisioned-password"
 }
 ```
 
@@ -51,7 +51,7 @@ Authenticates an analyst or administrator and returns an encrypted JWT bearer to
 ```bash
 curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"analyst_admin","password":"AegisSecure@2026"}'
+  -d '{"username":"your-provisioned-user","password":"your-provisioned-password"}'
 ```
 
 ---

@@ -204,7 +204,7 @@ make run
 - Analyst Dashboard: `http://localhost:8000`
 - Interactive Swagger API Docs: `http://localhost:8000/docs`
 - Health Probe: `http://localhost:8000/health`
-- Default Analyst Credentials: `analyst_admin` / `AegisSecure@2026`
+- Create analyst, auditor, and administrator accounts through your approved identity-provisioning workflow before use. No default account is created.
 
 #### Option B: Docker Compose (Full Stack Microservices)
 ```bash

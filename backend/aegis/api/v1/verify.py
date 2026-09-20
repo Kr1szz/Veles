@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -10,8 +11,10 @@ from aegis.models.schemas import (
 from aegis.models.database import VerificationRecord
 from aegis.engine.pipeline import verification_pipeline
 from aegis.services.storage import get_db
+from aegis.api.v1.auth import require_role
 
 router = APIRouter(prefix="/verify", tags=["Risk Verification"])
+logger = logging.getLogger("aegis.api.verify")
 
 
 @router.post("/kyc", response_model=RiskEvaluationResponse, status_code=status.HTTP_200_OK)
@@ -27,10 +30,11 @@ async def verify_kyc(
     try:
         result = await verification_pipeline.process_kyc_verification(payload, db)
         return result
-    except Exception as e:
+    except Exception:
+        logger.exception("KYC verification pipeline failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Verification pipeline failed: {str(e)}"
+            detail="Verification could not be completed"
         )
 
 
@@ -46,10 +50,11 @@ async def verify_transaction(
     try:
         result = await verification_pipeline.process_transaction_verification(payload, db)
         return result
-    except Exception as e:
+    except Exception:
+        logger.exception("Transaction verification pipeline failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Transaction pipeline failed: {str(e)}"
+            detail="Verification could not be completed"
         )
 
 
@@ -59,7 +64,8 @@ def list_verifications(
     decision: Optional[str] = Query(None, description="APPROVE, REVIEW, REJECT"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: object = Depends(require_role(["analyst", "auditor"]))
 ):
     """
     Lists verification records with masked PII for analyst review.
@@ -104,7 +110,8 @@ def list_verifications(
 @router.get("/{record_id}")
 def get_verification_record(
     record_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: object = Depends(require_role(["analyst", "auditor"]))
 ):
     r = db.query(VerificationRecord).filter(VerificationRecord.id == record_id).first()
     if not r:

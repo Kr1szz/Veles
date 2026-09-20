@@ -7,13 +7,17 @@ from aegis.models.database import VerificationRecord
 from aegis.services.storage import get_db
 from aegis.engine.cpp_bindings import HAS_CPP_ENGINE
 from aegis.core.rate_limiter import rate_limiter
+from aegis.api.v1.auth import require_role
+from aegis.models.database import User
 
 router = APIRouter(prefix="/metrics", tags=["Metrics & SLA Telemetry"])
 START_TIME = time.time()
 
 
 @router.get("")
-def get_system_metrics(db: Session = Depends(get_db)):
+def get_system_metrics(
+    db: Session = Depends(get_db), _: User = Depends(require_role(["analyst", "auditor"])),
+):
     """
     Returns real-time SLA metrics, P50/P95/P99 latency calculations,
     decision distributions, and acceleration engine health.

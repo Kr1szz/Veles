@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
-  const [username, setUsername] = useState('analyst_admin');
-  const [password, setPassword] = useState('AegisSecure@2026');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,10 +58,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </div>
-
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', backgroundColor: 'var(--bg-card)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
-            Default test credential: <code>analyst_admin</code> / <code>AegisSecure@2026</code>
           </div>
 
           {error && (

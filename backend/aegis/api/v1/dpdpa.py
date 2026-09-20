@@ -8,7 +8,7 @@ from aegis.models.schemas import DataErasureRequest
 from aegis.models.database import AuditLog, ConsentRecord, User
 from aegis.services.storage import get_db, StorageService
 from aegis.core.audit import ImmutableAuditLedger
-from aegis.api.v1.auth import get_current_user
+from aegis.api.v1.auth import require_role
 
 router = APIRouter(prefix="/dpdpa", tags=["DPDPA Privacy & Audit Ledger"])
 
@@ -17,7 +17,8 @@ router = APIRouter(prefix="/dpdpa", tags=["DPDPA Privacy & Audit Ledger"])
 def get_audit_ledger(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_role(["auditor"]))
 ):
     """
     Returns immutable audit logs with SHA-256 hash chaining details.
@@ -47,7 +48,9 @@ def get_audit_ledger(
 
 @router.get("/audit-ledger/verify")
 @router.post("/audit-ledger/verify")
-def verify_audit_ledger_integrity(db: Session = Depends(get_db)):
+def verify_audit_ledger_integrity(
+    db: Session = Depends(get_db), _: User = Depends(require_role(["auditor"])),
+):
     """
     Cryptographically verifies the SHA-256 chain integrity of the entire audit log.
     Ensures zero tampering, deletions, or post-facto alterations.
@@ -80,7 +83,8 @@ def verify_audit_ledger_integrity(db: Session = Depends(get_db)):
 @router.get("/consents")
 def list_consents(
     limit: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_role(["auditor"]))
 ):
     """
     DPDPA Consent Ledger tracking Purpose Limitation & Statutory Retention.
@@ -102,7 +106,7 @@ def list_consents(
 @router.post("/erasure")
 def request_erasure(
     payload: DataErasureRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["auditor"])),
     db: Session = Depends(get_db)
 ):
     """

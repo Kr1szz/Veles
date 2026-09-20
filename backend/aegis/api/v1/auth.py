@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -16,22 +16,23 @@ security_scheme = HTTPBearer(auto_error=False)
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security_scheme)],
+    request: Request,
     db: Session = Depends(get_db)
 ) -> User:
-    if not credentials:
+    token = credentials.credentials if credentials else request.cookies.get("veles_session")
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token required",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    token = credentials.credentials
     try:
         payload = decode_access_token(token)
         username: str = payload.get("sub")
         if not username:
             raise HTTPException(status_code=401, detail="Invalid token claims")
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Token validation failed: {e}")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
 
     user = db.query(User).filter(User.username == username).first()
     if not user or not user.is_active:
@@ -51,7 +52,7 @@ def require_role(allowed_roles: list[str]):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == request.username).first()
     if not user or not verify_password(request.password, user.hashed_password):
         raise HTTPException(
@@ -65,6 +66,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         expires_delta=expires
     )
 
+    response.set_cookie(
+        key="veles_session", value=token, httponly=True,
+        secure=settings.ENVIRONMENT.lower() == "production", samesite="strict",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/"
+    )
     return TokenResponse(
         access_token=token,
         token_type="bearer",
@@ -72,6 +78,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         username=user.username,
         expires_in_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response):
+    response.delete_cookie("veles_session", path="/")
 
 
 @router.get("/me")

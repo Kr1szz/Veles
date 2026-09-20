@@ -9,9 +9,7 @@ from aegis.config import settings
 from aegis.models.database import (
     Base, User, VerificationRecord, AnalystReview, AuditLog, ConsentRecord
 )
-from aegis.core.security import (
-    encrypt_pii, decrypt_pii, mask_pii_field, compute_blind_index, hash_password
-)
+from aegis.core.security import encrypt_pii, decrypt_pii, mask_pii_field, compute_blind_index
 from aegis.core.audit import ImmutableAuditLedger
 
 logger = logging.getLogger("aegis.services.storage")
@@ -31,27 +29,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db():
-    """Initializes schema and seeds default analyst account if not present."""
+    """Initializes schema. User provisioning is an explicit administrator task."""
     Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        # Check if default admin/analyst exists
-        default_user = db.query(User).filter(User.username == "analyst_admin").first()
-        if not default_user:
-            default_user = User(
-                username="analyst_admin",
-                # Secure initial default password for local demonstration/testing
-                hashed_password=hash_password("AegisSecure@2026"),
-                role="admin"
-            )
-            db.add(default_user)
-            db.commit()
-            logger.info("Initialized default admin/analyst user 'analyst_admin'.")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to initialize database seed: {e}")
-    finally:
-        db.close()
 
 
 def get_db():
@@ -270,6 +249,8 @@ class StorageService:
         rec = db.query(VerificationRecord).filter(VerificationRecord.id == verification_id).first()
         if not rec:
             raise ValueError("Verification record not found")
+        if rec.decision != "REVIEW":
+            raise ValueError("Only records awaiting review can be overridden")
 
         original_dec = rec.decision
         rec.decision = override_decision

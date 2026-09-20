@@ -1,6 +1,7 @@
 import base64
 import os
 from typing import List, Optional
+from cryptography.fernet import Fernet
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,18 +16,18 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "Veles Shield"
     APP_VERSION: str = "1.0.0"
-    ENVIRONMENT: str = "production"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = False
 
     # Security: Secrets & Token Configuration
     # In production, these should be supplied via environment variables
-    SECRET_KEY: str = "veles-shield-production-secret-key-must-be-rotated-32bytes"
+    # Deployment secrets are deliberately never committed to source control.
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 hours
     ALGORITHM: str = "HS256"
 
     # DPDPA Column-Level Encryption Key (32-byte urlsafe base64 for Fernet / AES)
-    # Default stable 32-byte key for development/test if not overridden
-    AEGIS_ENCRYPTION_KEY: str = "c2VjdXJlLWRwZHBhLWFlZ2lzLXRydXN0LTIwMjYtMDAwMSE="
+    AEGIS_ENCRYPTION_KEY: str = ""
     VELES_ENCRYPTION_KEY: Optional[str] = None
 
     # Database
@@ -57,21 +58,37 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def normalize_debug_flag(cls, value: object) -> bool:
+        if isinstance(value, str) and value.lower() in {"release", "production", "prod"}:
+            return False
+        return value
+
     @field_validator("AEGIS_ENCRYPTION_KEY", mode="before")
     @classmethod
     def validate_encryption_key(cls, v: str) -> str:
         override = os.environ.get("VELES_ENCRYPTION_KEY")
         target = override or v
+        if not target:
+            # Prevent plaintext storage during local use. Production startup
+            # rejects ephemeral keys through validate_production_secrets().
+            return Fernet.generate_key().decode("ascii")
         try:
             decoded = base64.urlsafe_b64decode(target)
             if len(decoded) != 32:
                 # If padding or length differs, re-encode a 32-byte key
                 raise ValueError("Encryption key must decode to exactly 32 bytes")
-        except Exception:
-            # Generate deterministic fallback 32 bytes for dev
-            raw = (target + "0" * 32)[:32].encode("utf-8")
-            return base64.urlsafe_b64encode(raw).decode("ascii")
+        except Exception as exc:
+            raise ValueError("AEGIS_ENCRYPTION_KEY must be a URL-safe base64 32-byte Fernet key") from exc
         return target
+
+    def validate_production_secrets(self) -> None:
+        if self.ENVIRONMENT.lower() == "production":
+            if len(self.SECRET_KEY) < 32:
+                raise RuntimeError("SECRET_KEY must be supplied by the production secret manager (minimum 32 characters).")
+            if not (os.environ.get("VELES_ENCRYPTION_KEY") or os.environ.get("AEGIS_ENCRYPTION_KEY")):
+                raise RuntimeError("VELES_ENCRYPTION_KEY must be supplied by the production secret manager.")
 
 
 settings = Settings()

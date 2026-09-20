@@ -28,6 +28,7 @@ logger = logging.getLogger("aegis.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings.validate_production_secrets()
     logger.info("Initializing Veles Shield Fraud Detection & Verification Pipeline...")
     init_db()
     logger.info(f"C++ Native Anomaly Engine Active: {HAS_CPP_ENGINE}")

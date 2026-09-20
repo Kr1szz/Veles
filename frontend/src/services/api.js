@@ -1,14 +1,9 @@
 const API_BASE = '/api/v1';
 
-let authToken = localStorage.getItem('aegis_token') || '';
+let authToken = '';
 
 export const setAuthToken = (token) => {
   authToken = token;
-  if (token) {
-    localStorage.setItem('aegis_token', token);
-  } else {
-    localStorage.removeItem('aegis_token');
-  }
 };
 
 export const getAuthToken = () => authToken;
@@ -33,19 +28,23 @@ export const api = {
     });
     if (!res.ok) throw new Error((await res.json()).detail || 'Login failed');
     const data = await res.json();
-    setAuthToken(data.access_token);
     return data;
   },
 
+  async logout() {
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'same-origin' });
+    setAuthToken('');
+  },
+
   async getProfile() {
-    const res = await fetch(`${API_BASE}/auth/me`, { headers: defaultHeaders() });
+    const res = await fetch(`${API_BASE}/auth/me`, { headers: defaultHeaders(), credentials: 'same-origin' });
     if (!res.ok) throw new Error('Failed to fetch profile');
     return res.json();
   },
 
   // Telemetry & Metrics
   async getMetrics() {
-    const res = await fetch(`${API_BASE}/metrics`, { headers: defaultHeaders() });
+    const res = await fetch(`${API_BASE}/metrics`, { headers: defaultHeaders(), credentials: 'same-origin' });
     if (!res.ok) throw new Error('Failed to fetch metrics');
     return res.json();
   },
@@ -90,7 +89,7 @@ export const api = {
 
   // Analyst Review Queue
   async getReviewQueue(limit = 50) {
-    const res = await fetch(`${API_BASE}/reviews/queue?limit=${limit}`, { headers: defaultHeaders() });
+    const res = await fetch(`${API_BASE}/reviews/queue?limit=${limit}`, { headers: defaultHeaders(), credentials: 'same-origin' });
     if (!res.ok) throw new Error('Failed to fetch review queue');
     return res.json();
   },
@@ -149,13 +148,13 @@ export const api = {
 
   // Real-time Event Stream (SSE)
   connectEventStream(onEvent, onError) {
-    const eventSource = new EventSource(`${API_BASE}/events/stream`);
+    const eventSource = new EventSource(`${API_BASE}/events/stream`, { withCredentials: true });
     eventSource.onmessage = (e) => {
       try {
         const parsed = JSON.parse(e.data);
         onEvent(parsed);
       } catch (err) {
-        console.error('SSE JSON parse error:', err);
+        onError?.(err);
       }
     };
     eventSource.onerror = (err) => {
@@ -166,7 +165,7 @@ export const api = {
   },
 
   async getRecentEvents() {
-    const res = await fetch(`${API_BASE}/events/recent`);
+    const res = await fetch(`${API_BASE}/events/recent`, { credentials: 'same-origin' });
     if (!res.ok) return [];
     return res.json();
   }

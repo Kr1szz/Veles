@@ -1,12 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from aegis.engine.rule_engine import rule_engine, DISPOSABLE_EMAIL_DOMAINS, FLAGGED_DEVICE_FINGERPRINTS
 from aegis.config import settings
+from aegis.api.v1.auth import require_role
+from aegis.models.database import User
 
 router = APIRouter(prefix="/rules", tags=["Rule Configuration"])
 
 
 @router.get("")
-def get_rule_configurations():
+def get_rule_configurations(_: User = Depends(require_role(["analyst", "auditor"]))):
     """
     Returns active deterministic rules, thresholds, and blacklist counts.
     """
