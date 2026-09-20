@@ -134,7 +134,7 @@ export default function DpdpaAuditView() {
             DPDPA Right to Erasure (Sec 12)
           </h3>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Data Principals can request erasure of their personal identifiers. AEGIS-Trust scrubs encrypted PII while preserving anonymized cryptographic audit lineage for statutory AML compliance.
+            Data Principals can request erasure of their personal identifiers. Veles Shield scrubs encrypted PII while preserving anonymized cryptographic audit lineage for statutory AML compliance.
           </p>
 
           <form onSubmit={handleExecuteErasure}>

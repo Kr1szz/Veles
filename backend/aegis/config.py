@@ -13,14 +13,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    APP_NAME: str = "AEGIS-Trust"
+    APP_NAME: str = "Veles Shield"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "production"
     DEBUG: bool = False
 
     # Security: Secrets & Token Configuration
     # In production, these should be supplied via environment variables
-    SECRET_KEY: str = "aegis-production-secret-key-must-be-rotated-in-prod-32bytes"
+    SECRET_KEY: str = "veles-shield-production-secret-key-must-be-rotated-32bytes"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 hours
     ALGORITHM: str = "HS256"
 
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     AEGIS_ENCRYPTION_KEY: str = "c2VjdXJlLWRwZHBhLWFlZ2lzLXRydXN0LTIwMjYtMDAwMSE="
 
     # Database
-    DATABASE_URL: str = "sqlite:///./aegis_trust.db"
+    DATABASE_URL: str = "sqlite:///./veles_shield.db"
 
     # Redis Cache & Rate Limiting
     REDIS_URL: str = "redis://localhost:6379/0"

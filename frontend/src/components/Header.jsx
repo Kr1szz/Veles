@@ -14,7 +14,7 @@ export default function Header({ metrics, onOpenLogin, user, onLogout }) {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="brand-title">AEGIS-Trust</span>
+              <span className="brand-title">Veles Shield</span>
               <span className="brand-badge">IDfy Aligned</span>
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>

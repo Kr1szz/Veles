@@ -7,16 +7,24 @@ from typing import Optional
 
 logger = logging.getLogger("aegis.engine.cpp")
 
-# Look for compiled libaegis.so in likely locations
+# Look for compiled libveles.so / libaegis.so in likely locations
 SO_PATHS = [
+    os.path.join(os.path.dirname(__file__), "..", "cpp", "libveles.so"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "cpp", "libveles.so"),
     os.path.join(os.path.dirname(__file__), "..", "cpp", "libaegis.so"),
     os.path.join(os.path.dirname(__file__), "..", "..", "cpp", "libaegis.so"),
+    "/usr/local/lib/libveles.so",
     "/usr/local/lib/libaegis.so",
+    "libveles.so",
     "libaegis.so"
 ]
 
 _lib = None
 HAS_CPP_ENGINE = False
+_fn_shannon = None
+_fn_name = None
+_fn_ewma = None
+_fn_verhoeff = None
 
 for path in SO_PATHS:
     norm_path = os.path.abspath(path)
@@ -24,29 +32,32 @@ for path in SO_PATHS:
         try:
             _lib = ctypes.CDLL(norm_path)
             HAS_CPP_ENGINE = True
-            logger.info(f"Successfully loaded C++ AEGIS Engine from: {norm_path}")
+            logger.info(f"Successfully loaded C++ Veles Shield Engine from: {norm_path}")
             break
         except Exception as e:
             logger.warning(f"Found {norm_path} but failed to load: {e}")
 
 if _lib is not None:
     try:
-        _lib.aegis_calculate_shannon_entropy.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
-        _lib.aegis_calculate_shannon_entropy.restype = ctypes.c_double
+        _fn_shannon = getattr(_lib, "veles_calculate_shannon_entropy", getattr(_lib, "aegis_calculate_shannon_entropy", None))
+        if _fn_shannon:
+            _fn_shannon.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+            _fn_shannon.restype = ctypes.c_double
 
-        _lib.aegis_calculate_name_anomaly.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
-        _lib.aegis_calculate_name_anomaly.restype = ctypes.c_double
+        _fn_name = getattr(_lib, "veles_calculate_name_anomaly", getattr(_lib, "aegis_calculate_name_anomaly", None))
+        if _fn_name:
+            _fn_name.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+            _fn_name.restype = ctypes.c_double
 
-        _lib.aegis_calculate_ewma_deviation.argtypes = [
-            ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double
-        ]
-        _lib.aegis_calculate_ewma_deviation.restype = ctypes.c_double
+        _fn_ewma = getattr(_lib, "veles_calculate_ewma_deviation", getattr(_lib, "aegis_calculate_ewma_deviation", None))
+        if _fn_ewma:
+            _fn_ewma.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double]
+            _fn_ewma.restype = ctypes.c_double
 
-        _lib.aegis_validate_verhoeff.argtypes = [ctypes.c_char_p]
-        _lib.aegis_validate_verhoeff.restype = ctypes.c_int
-
-        _lib.aegis_calculate_bigram_perplexity.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
-        _lib.aegis_calculate_bigram_perplexity.restype = ctypes.c_double
+        _fn_verhoeff = getattr(_lib, "veles_validate_verhoeff", getattr(_lib, "aegis_validate_verhoeff", None))
+        if _fn_verhoeff:
+            _fn_verhoeff.argtypes = [ctypes.c_char_p]
+            _fn_verhoeff.restype = ctypes.c_int
     except Exception as e:
         logger.error(f"Error binding C++ engine functions: {e}")
         _lib = None
@@ -85,8 +96,8 @@ def calculate_shannon_entropy(text: Optional[str]) -> float:
     if not text:
         return 0.0
     text_b = text.encode("utf-8")
-    if _lib is not None:
-        return float(_lib.aegis_calculate_shannon_entropy(text_b, len(text_b)))
+    if _fn_shannon is not None:
+        return float(_fn_shannon(text_b, len(text_b)))
 
     # Pure Python implementation
     chars = [c for c in text if not c.isspace()]
@@ -108,8 +119,8 @@ def calculate_name_anomaly(name: Optional[str]) -> float:
     if not name:
         return 1.0
     name_b = name.encode("utf-8")
-    if _lib is not None:
-        return float(_lib.aegis_calculate_name_anomaly(name_b, len(name_b)))
+    if _fn_name is not None:
+        return float(_fn_name(name_b, len(name_b)))
 
     # Pure Python fallback
     cleaned = name.strip()
@@ -177,8 +188,8 @@ def calculate_name_anomaly(name: Optional[str]) -> float:
 
 def calculate_ewma_deviation(current_val: float, ewma_mean: float, ewma_var: float, alpha: float = 0.2) -> float:
     """Calculates statistical EWMA risk index for transaction amount deviation"""
-    if _lib is not None:
-        return float(_lib.aegis_calculate_ewma_deviation(current_val, ewma_mean, ewma_var, alpha))
+    if _fn_ewma is not None:
+        return float(_fn_ewma(current_val, ewma_mean, ewma_var, alpha))
 
     if ewma_mean <= 0.0:
         return 0.0
@@ -194,8 +205,8 @@ def validate_verhoeff(num_str: Optional[str]) -> bool:
     """Validates Aadhaar 12-digit number using Verhoeff algorithm"""
     if not num_str or len(num_str) != 12 or not num_str.isdigit():
         return False
-    if _lib is not None:
-        return bool(_lib.aegis_validate_verhoeff(num_str.encode("utf-8")))
+    if _fn_verhoeff is not None:
+        return bool(_fn_verhoeff(num_str.encode("utf-8")))
 
     c = 0
     reversed_digits = [int(x) for x in reversed(num_str)]

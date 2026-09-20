@@ -1,5 +1,5 @@
 """
-AEGIS-Trust: Real-Time High-Throughput Fraud Detection & Verification Pipeline
+Veles Shield: Real-Time High-Throughput Fraud Detection & Verification Pipeline
 Aligns with IDfy OnboardIQ, OneRisk, and Privy platforms.
 """
 

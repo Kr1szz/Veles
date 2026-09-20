@@ -27,12 +27,12 @@ logger = logging.getLogger("aegis.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing AEGIS-Trust Fraud Detection & Verification Pipeline...")
+    logger.info("Initializing Veles Shield Fraud Detection & Verification Pipeline...")
     init_db()
     logger.info(f"C++ Native Anomaly Engine Active: {HAS_CPP_ENGINE}")
-    logger.info("AEGIS-Trust ready to accept high-throughput verification requests.")
+    logger.info("Veles Shield ready to accept high-throughput verification requests.")
     yield
-    logger.info("Shutting down AEGIS-Trust services.")
+    logger.info("Shutting down Veles Shield services.")
 
 
 app = FastAPI(
@@ -87,12 +87,12 @@ if os.path.isdir(frontend_dist):
         index_file = os.path.join(frontend_dist, "index.html")
         if os.path.exists(index_file):
             return FileResponse(index_file)
-        return JSONResponse({"status": "AEGIS-Trust API Operational", "docs": "/docs"})
+        return JSONResponse({"status": "Veles Shield API Operational", "docs": "/docs"})
 else:
     @app.get("/")
     def root_api():
         return {
-            "message": "AEGIS-Trust High-Throughput Fraud Detection Pipeline is running.",
+            "message": "Veles Shield High-Throughput Fraud Detection Pipeline is running.",
             "docs": "/docs",
             "health": "/health",
             "api_version": "v1"

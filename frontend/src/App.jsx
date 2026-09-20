@@ -197,7 +197,7 @@ export default function App() {
       <footer className="app-footer">
         <div className="footer-inner">
           <div>
-            <strong>AEGIS-Trust</strong> — Production-Grade Real-Time Verification Pipeline.
+            <strong>Veles Shield</strong> — Production-Grade Real-Time Verification Pipeline.
             Built with FastAPI, C++ SIMD, Redis &amp; PostgreSQL. Aligned with IDfy OnboardIQ, OneRisk, and Privy.
           </div>
           <div>

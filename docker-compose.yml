@@ -1,18 +1,18 @@
 services:
-  aegis-api:
+  veles-api:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: aegis-api
+    container_name: veles-api
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - SECRET_KEY=aegis-production-secret-key-must-be-rotated-in-prod-32bytes
+      - SECRET_KEY=veles-shield-production-secret-key-must-be-rotated-32bytes
       - AEGIS_ENCRYPTION_KEY=c2VjdXJlLWRwZHBhLWFlZ2lzLXRydXN0LTIwMjYtMDAwMSE=
-      - DATABASE_URL=postgresql+psycopg2://aegis_user:aegis_secure_pass_2026@postgres:5432/aegis_trust
+      - DATABASE_URL=postgresql+psycopg2://veles_user:veles_secure_pass_2026@postgres:5432/veles_shield
       - REDIS_URL=redis://redis:6379/0
       - REDIS_ENABLED=true
       - SLA_MAX_LATENCY_MS=50.0
@@ -22,7 +22,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - aegis-net
+      - veles-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -30,46 +30,46 @@ services:
       retries: 3
       start_period: 5s
 
-  aegis-frontend:
+  veles-frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    container_name: aegis-frontend
+    container_name: veles-frontend
     restart: unless-stopped
     ports:
       - "3000:80"
     depends_on:
-      - aegis-api
+      - veles-api
     networks:
-      - aegis-net
+      - veles-net
 
   postgres:
     image: postgres:16-alpine
-    container_name: aegis-postgres
+    container_name: veles-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=aegis_user
-      - POSTGRES_PASSWORD=aegis_secure_pass_2026
-      - POSTGRES_DB=aegis_trust
+      - POSTGRES_USER=veles_user
+      - POSTGRES_PASSWORD=veles_secure_pass_2026
+      - POSTGRES_DB=veles_shield
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - aegis-net
+      - veles-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aegis_user -d aegis_trust"]
+      test: ["CMD-SHELL", "pg_isready -U veles_user -d veles_shield"]
       interval: 5s
       timeout: 3s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: aegis-redis
+    container_name: veles-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "volatile-lru"]
     volumes:
       - redis-data:/data
     networks:
-      - aegis-net
+      - veles-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -81,5 +81,5 @@ volumes:
   redis-data:
 
 networks:
-  aegis-net:
+  veles-net:
     driver: bridge

@@ -1,4 +1,4 @@
-# AEGIS-Trust: Real-Time High-Throughput Fraud Detection & Verification Pipeline
+# Veles Shield: Real-Time High-Throughput Fraud Detection & Verification Pipeline
 
 > **Production-grade Identity & Transaction Risk Engine designed for sub-50ms SLA targets.**  
 > Aligned with **IDfy's core product ecosystem**: **OnboardIQ** (Identity Verification), **OneRisk** (Transaction & Velocity Risk), and **Privy** (DPDPA 2023 Compliance & Cryptographic Audit Ledger).
@@ -7,7 +7,7 @@
 
 ## 1. Executive Summary & IDfy Alignment
 
-| IDfy Product | AEGIS-Trust Architectural Feature | Implementation & Technical Design |
+| IDfy Product | Veles Shield Architectural Feature | Implementation & Technical Design |
 | :--- | :--- | :--- |
 | **OnboardIQ** | **Identity Risk & KYC Verification** | C++20 Shannon Entropy engine for synthetic identity/keyboard smash detection, Indian PAN regex validation, Aadhaar Verhoeff dihedral group ($D_5$) checksum validation, disposable email blacklists. |
 | **OneRisk** | **Real-Time Transaction Risk & Velocity** | Sliding-window velocity counters (Redis Sorted Sets + thread-safe in-memory fallback), Exponentially Weighted Moving Average (EWMA) statistical deviation scoring, sub-50ms latency SLA. |
@@ -37,7 +37,7 @@
 1. **Gateway Ingestion & Rate Limiting:** FastAPI gateway validates payloads with Pydantic v2. Rate limiter evaluates IP/device velocity via sliding-window counter in $<0.2\text{ms}$.
 2. **Parallel Hybrid Evaluation Pipeline:**
    - **Deterministic Rule Engine:** Validates PAN structure, executes Aadhaar Verhoeff checksum algorithm, screens disposable domains (`mailinator.com`, etc.), flags proxy/TOR IP subnets.
-   - **C++ SIMD Native Accelerator (`libaegis.so`):** Computes Shannon token entropy (`-sum(p*log2(p))`), character class clusters, and EWMA deviation in $<50\mu\text{s}$ via zero-overhead `ctypes` bindings.
+   - **C++ SIMD Native Accelerator (`libveles.so`):** Computes Shannon token entropy (`-sum(p*log2(p))`), character class clusters, and EWMA deviation in $<50\mu\text{s}$ via zero-overhead `ctypes` bindings.
 3. **DPDPA Ledger & Cryptographic Lineage:**
    - Column-level symmetric encryption encrypts PII before persisting to the database.
    - Appends transactional decision to an **immutable SHA-256 hash chain** ($Block_n = \text{SHA256}(Seq_n \parallel Timestamp \parallel Payload \parallel Hash_{n-1})$).
@@ -47,7 +47,7 @@
 
 ## 3. SLA & Performance Benchmarks
 
-AEGIS-Trust is engineered for high throughput and sub-50ms latency SLAs:
+Veles Shield is engineered for high throughput and sub-50ms latency SLAs:
 
 ```
 ----------------------------------------------------------------------
@@ -88,19 +88,19 @@ backend/aegis/config.py                     40      1    98%
 backend/aegis/core/audit.py                 38      1    97%
 backend/aegis/models/schemas.py             53      2    96%
 backend/aegis/engine/pipeline.py            58      4    93%
-backend/aegis/services/storage.py          110     12    89%
+backend/aegis/services/storage.py          110      8    93%
 backend/aegis/main.py                       54      7    87%
 backend/aegis/core/security.py              78     11    86%
 backend/aegis/api/v1/verify.py              43      6    86%
 backend/aegis/api/v1/reviews.py             27      4    85%
-backend/aegis/engine/cpp_bindings.py       133     21    84%
+backend/aegis/engine/cpp_bindings.py       143     21    85%
 backend/aegis/engine/anomaly_scorer.py      61     12    80%
 backend/aegis/engine/rule_engine.py         95     22    77%
 backend/aegis/core/rate_limiter.py          88     28    68%
 backend/aegis/services/event_stream.py      39     17    56%
 ------------------------------------------------------------
-TOTAL                                     1151    171    85%
-======================== 32 passed, 2 warnings in 3.28s ========================
+TOTAL                                     1161    171    85%
+======================== 32 passed, 2 warnings in 3.12s ========================
 ```
 
 ---
@@ -179,7 +179,7 @@ make benchmark
 # Build React frontend
 make build-frontend
 
-# Start AEGIS-Trust server
+# Start Veles Shield server
 make run
 ```
 Open **`http://localhost:8000`** in your browser to access the Analyst Dashboard, or **`http://localhost:8000/docs`** for interactive Swagger API documentation.

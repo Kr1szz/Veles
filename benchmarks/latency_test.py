@@ -23,7 +23,7 @@ from aegis.engine.cpp_bindings import HAS_CPP_ENGINE
 
 def run_benchmark(num_requests: int = 500):
     print("=" * 70)
-    print("AEGIS-Trust: Sub-50ms SLA & Throughput Benchmark Suite")
+    print("Veles Shield: Sub-50ms SLA & Throughput Benchmark Suite")
     print(f"C++ SIMD Anomaly Engine Active: {HAS_CPP_ENGINE}")
     print(f"Target Requests: {num_requests}")
     print("=" * 70)

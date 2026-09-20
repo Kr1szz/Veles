@@ -1,4 +1,4 @@
-# Multi-Stage Production Dockerfile for AEGIS-Trust Backend & C++ Engine
+# Multi-Stage Production Dockerfile for Veles Shield Backend & C++ Engine
 
 # Stage 1: Build C++ Native Anomaly & Entropy Engine
 FROM gcc:14-bookworm AS cpp-builder
@@ -22,7 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy compiled C++ shared library from Stage 1
+# Copy compiled C++ shared libraries from Stage 1
+COPY --from=cpp-builder /build/libveles.so /usr/local/lib/libveles.so
 COPY --from=cpp-builder /build/libaegis.so /usr/local/lib/libaegis.so
 RUN ldconfig
 
@@ -37,9 +38,9 @@ COPY backend/aegis /app/aegis
 COPY frontend/dist /app/frontend/dist
 
 # Security: Run as dedicated non-root user
-RUN useradd -u 10001 -m -s /bin/bash aegisuser && \
-    chown -R aegisuser:aegisuser /app
-USER aegisuser
+RUN useradd -u 10001 -m -s /bin/bash velesuser && \
+    chown -R velesuser:velesuser /app
+USER velesuser
 
 EXPOSE 8000
 
