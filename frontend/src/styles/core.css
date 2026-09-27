@@ -1,0 +1,76 @@
+/* ============================================================
+   Veles Shield — Cyber Risk Operations Dashboard
+   Dark HUD / glassmorphism design, neon tokens, corner-bracket
+   frames, tabular mono data, risk-proximity radar.
+   ============================================================ */
+
+:root {
+  --bg: #04060d;
+  --bg-glow: radial-gradient(1200px 600px at 80% -10%, rgba(56, 132, 255, 0.10), transparent 60%),
+             radial-gradient(900px 500px at -10% 110%, rgba(139, 92, 246, 0.10), transparent 60%);
+  --surface: #0a1020;
+  --panel: rgba(15, 23, 44, 0.72);
+  --panel-solid: #0d1526;
+  --panel-raise: rgba(20, 31, 58, 0.85);
+  --line: rgba(148, 190, 255, 0.10);
+  --line-strong: rgba(148, 190, 255, 0.20);
+
+  --text: #e7edff;
+  --text-2: #93a4c8;
+  --text-3: #5b6c96;
+
+  --cyan: #2ae4ff;
+  --cyan-dim: rgba(42, 228, 255, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: rgba(139, 92, 246, 0.14);
+  --green: #34d399;
+  --green-dim: rgba(52, 211, 153, 0.12);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251, 191, 36, 0.12);
+  --red: #fb4d6d;
+  --red-dim: rgba(251, 77, 109, 0.14);
+  --blue: #60a5fa;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --shadow-glow: 0 0 0 1px rgba(148, 190, 255, 0.06), 0 18px 44px -22px rgba(0, 0, 0, 0.85);
+  --cyan-glow: 0 0 18px -4px rgba(42, 228, 255, 0.45);
+  --red-glow: 0 0 18px -4px rgba(251, 77, 109, 0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  background-image: var(--bg-glow);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+::selection { background: rgba(42, 228, 255, 0.28); }
+
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+button:focus-visible, a:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+a { color: var(--cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1c2a4a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3d68; }
+

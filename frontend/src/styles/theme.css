@@ -1,0 +1,58 @@
+/* Presentation pass: quieter surfaces, stronger hierarchy, and clearer data density. */
+:root {
+  --bg: #080d17;
+  --bg-glow: radial-gradient(900px 460px at 72% -18%, rgba(61, 112, 196, .13), transparent 66%);
+  --surface: #0d1522;
+  --panel: rgba(17, 27, 43, .92);
+  --panel-solid: #111b2b;
+  --panel-raise: #172438;
+  --line: rgba(172, 192, 220, .12);
+  --line-strong: rgba(172, 192, 220, .22);
+  --text: #edf3fb;
+  --text-2: #a6b4c8;
+  --text-3: #77869c;
+  --cyan: #71c8d5;
+  --cyan-dim: rgba(113, 200, 213, .11);
+  --violet: #9a9cf0;
+  --green: #54c6a1;
+  --amber: #e8b965;
+  --red: #e47b85;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-glow: 0 10px 30px rgba(0, 0, 0, .18);
+}
+
+body { background-color: var(--bg); }
+.app-header { background: rgba(8, 13, 23, .94); border-color: var(--line); }
+.brand-mark { box-shadow: none; border-radius: 9px; }
+.workspace { grid-template-columns: 218px minmax(0, 1fr) 300px; }
+.main-panel { padding: 22px 24px 44px; }
+.sidebar { background: rgba(12, 19, 31, .72); }
+.side-link.active { background: rgba(113, 200, 213, .09); border-color: rgba(113, 200, 213, .18); }
+.panel { background: linear-gradient(145deg, rgba(19, 30, 47, .96), rgba(14, 23, 37, .96)); }
+.panel::before, .panel::after { opacity: .32; }
+.kpi { min-height: 116px; }
+.canvas-heading { margin: 8px 0 18px; }
+.canvas-heading h1 { font-size: 21px; letter-spacing: -.025em; }
+.feed-toolbar { padding-bottom: 12px; }
+.table-wrap { border-radius: var(--radius); }
+.table tbody tr:hover { background: rgba(113, 200, 213, .055); }
+.inspector { background: rgba(12, 19, 31, .52); }
+.access-state { max-width: 650px; margin: 8vh auto; padding: 40px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(145deg, rgba(19, 30, 47, .98), rgba(12, 19, 31, .96)); box-shadow: var(--shadow-glow); }
+.access-state h1 { max-width: 520px; font-size: clamp(28px, 3vw, 40px); line-height: 1.12; letter-spacing: -.04em; margin: 12px 0; }
+.access-state p { max-width: 490px; color: var(--text-2); margin-bottom: 22px; }
+.environment { color: var(--cyan); border-color: rgba(113, 200, 213, .28); }
+.status-pill.healthy, .status-pill.elevated { box-shadow: none; }
+
+@media (max-width: 1280px) {
+  .workspace { grid-template-columns: 210px minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .workspace { grid-template-columns: 56px minmax(0, 1fr); }
+  .main-panel { padding: 16px; }
+}
+@media (max-width: 640px) {
+  .main-panel { padding: 12px 12px 30px; }
+  .access-state { margin: 24px 0; padding: 24px; }
+  .access-state h1 { font-size: 28px; }
+}

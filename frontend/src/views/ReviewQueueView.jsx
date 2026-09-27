@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export default function ReviewQueueModal({ user, onReviewSubmitted }) {
+export default function ReviewQueueView({ onReviewSubmitted }) {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);

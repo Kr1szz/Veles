@@ -42,7 +42,7 @@ function Radar({ events }) {
         <div className="radar-sweep" />
         <div className="radar-core" />
         {blips.map((b) => (
-          <span key={b.key} className={`radar-blip ${b.kind}`} style={{ left: `calc(50% + ${b.x}px)`, top: `calc(50% + ${b.y}px)` }} />
+            <span key={b.key} className={`radar-blip ${b.kind} ${b.key === events?.[0]?.id ? 'is-latest' : ''}`} style={{ left: `calc(50% + ${b.x}px)`, top: `calc(50% + ${b.y}px)` }} />
         ))}
         <span className="radar-label">Risk proximity</span>
       </div>
@@ -50,7 +50,7 @@ function Radar({ events }) {
   );
 }
 
-function Sparkline({ events }) {
+function Sparkline({ events, target }) {
   const lats = (events || []).slice(0, 14).map((e) => e.latency_ms ?? 0);
   const max = Math.max(50, ...lats, 1);
   const bars = lats.length ? lats : [0, 0, 0, 0, 0, 0];
@@ -58,7 +58,7 @@ function Sparkline({ events }) {
     <div>
       <div className="sparkline">
         {bars.map((v, i) => {
-          const over = v > 50;
+          const over = v > target;
           return (
             <span
               key={i}
@@ -83,7 +83,7 @@ function Sparkline({ events }) {
   );
 }
 
-export default function MetricsOverview({ metrics, loading, events }) {
+export default function MetricsOverview({ metrics, loading, events, eventStreamStatus }) {
   if (loading && !metrics) {
     return (
       <div className="kpis">
@@ -101,12 +101,19 @@ export default function MetricsOverview({ metrics, loading, events }) {
   const p50 = metrics?.latency_percentiles?.p50_ms ?? 0;
   const p95 = metrics?.latency_percentiles?.p95_ms ?? 0;
   const p99 = metrics?.latency_percentiles?.p99_ms ?? 0;
+  const target = metrics?.latency_percentiles?.sla_target_ms ?? 50;
+  const latencySampleSize = metrics?.latency_percentiles?.sample_size ?? 0;
   const total = metrics?.total_evaluations ?? 0;
   const approvals = metrics?.decision_distribution?.approve ?? 0;
   const reviews = metrics?.decision_distribution?.review ?? 0;
   const rejects = metrics?.decision_distribution?.reject ?? 0;
   const activeKeys = metrics?.infrastructure?.active_velocity_keys ?? 0;
-  const slaOk = p95 <= 50;
+  const hasData = total > 0;
+  const slaOk = p95 <= target;
+  const latestEventTime = events?.[0]?.timestamp
+    ? new Date(events[0].timestamp).toLocaleTimeString()
+    : 'waiting for first decision';
+  const streamConnected = eventStreamStatus === 'connected';
 
   return (
     <>
@@ -114,15 +121,15 @@ export default function MetricsOverview({ metrics, loading, events }) {
         <div className={`kpi panel accent-${slaOk ? 'cyan' : 'red'}`}>
           <div className="kpi-accent" />
           <div className="kpi-label">
-            <span>Latency P95</span>
+            <span>Decision processing P95</span>
             <span className="kpi-chip" style={{ color: slaOk ? 'var(--green)' : 'var(--red)', border: `1px solid ${slaOk ? 'rgba(52,211,153,.4)' : 'rgba(251,77,109,.4)'}`, background: slaOk ? 'var(--green-dim)' : 'var(--red-dim)' }}>
-              {slaOk ? 'SLA OK' : 'BREACH'}
+              {hasData ? (slaOk ? 'UNDER TARGET' : 'OVER TARGET') : 'NO DATA'}
             </span>
           </div>
           <div className="kpi-value">
-            {p95} <small>ms</small>
+            {hasData ? p95 : '—'} <small>{hasData ? 'ms' : ''}</small>
           </div>
-          <div className="kpi-sub font-mono">P50 {p50}ms · P99 {p99}ms · target &lt;50ms</div>
+          <div className="kpi-sub font-mono">{hasData ? `P50 ${p50}ms · P99 ${p99}ms · n=${latencySampleSize}` : 'No processing samples yet'} · target {target}ms</div>
         </div>
 
         <div className="kpi panel accent-violet">
@@ -164,7 +171,14 @@ export default function MetricsOverview({ metrics, loading, events }) {
 
       <div className="signal-row">
         <div className="panel" style={{ padding: '14px' }}>
-          <div className="stat-title">Risk proximity map <span className="hash">— live decision stream</span></div>
+          <div className="stat-title signal-heading">
+            <span>Risk proximity map</span>
+            <span className={`signal-status ${streamConnected ? 'connected' : ''}`} aria-live="polite">
+              <i className="signal-status-dot" />
+              {streamConnected ? 'Live stream' : '5s refresh'}
+              <span className="signal-updated">{latestEventTime}</span>
+            </span>
+          </div>
           <div className="radar-grid">
             <Radar events={events} />
             <div className="radar-legend">
@@ -189,8 +203,8 @@ export default function MetricsOverview({ metrics, loading, events }) {
         </div>
 
         <div className="panel" style={{ padding: '14px' }}>
-          <div className="stat-title">Engine latency <span className="hash">— sub-50ms SLA envelope</span></div>
-          <Sparkline events={events} />
+          <div className="stat-title">Pipeline latency <span className="hash">— configured 50ms target</span></div>
+          <Sparkline events={events} target={target} />
         </div>
       </div>
     </>

@@ -12,14 +12,7 @@ from aegis.config import settings
 from aegis.core.middleware import SecurityHeadersMiddleware, GlobalRateLimitMiddleware
 from aegis.services.storage import init_db
 from aegis.engine.cpp_bindings import HAS_CPP_ENGINE
-from aegis.api.v1.auth import router as auth_router
-from aegis.api.v1.verify import router as verify_router
-from aegis.api.v1.reviews import router as reviews_router
-from aegis.api.v1.dpdpa import router as dpdpa_router
-from aegis.api.v1.rules import router as rules_router
-from aegis.api.v1.metrics import router as metrics_router
-from aegis.api.v1.events import router as events_router
-from aegis.api.v1.demo import router as demo_router
+from aegis.api.v1.router import api_router
 
 logging.basicConfig(
     level=logging.getLevelNamesMapping().get(settings.LOG_LEVEL.upper(), logging.INFO),
@@ -36,7 +29,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Veles Shield Fraud Detection & Verification Pipeline...")
     init_db()
     logger.info(f"C++ Native Anomaly Engine Active: {HAS_CPP_ENGINE}")
-    logger.info("Veles Shield ready to accept high-throughput verification requests.")
+    logger.info("Veles Shield API ready to accept requests.")
     yield
     logger.info("Shutting down Veles Shield services.")
 
@@ -46,7 +39,7 @@ docs_enabled = settings.ENABLE_DOCS if settings.ENABLE_DOCS is not None else set
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Real-Time High-Throughput Fraud Detection & Verification Pipeline (IDfy OnboardIQ, OneRisk, Privy)",
+    description="Prototype API for verification risk scoring, audit records, and bounded company website crawling.",
     lifespan=lifespan,
     docs_url="/docs" if docs_enabled else None,
     redoc_url="/redoc" if docs_enabled else None,
@@ -77,16 +70,8 @@ async def limit_request_size(request: Request, call_next):
     return await call_next(request)
 
 
-# Mount API Routers under /api/v1
-api_v1_prefix = "/api/v1"
-app.include_router(auth_router, prefix=api_v1_prefix)
-app.include_router(verify_router, prefix=api_v1_prefix)
-app.include_router(reviews_router, prefix=api_v1_prefix)
-app.include_router(dpdpa_router, prefix=api_v1_prefix)
-app.include_router(rules_router, prefix=api_v1_prefix)
-app.include_router(metrics_router, prefix=api_v1_prefix)
-app.include_router(events_router, prefix=api_v1_prefix)
-app.include_router(demo_router, prefix=api_v1_prefix)
+# Mount the versioned API as one composed router.
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["Health"])

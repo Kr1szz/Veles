@@ -25,7 +25,7 @@ if ! docker ps &> /dev/null; then
 fi
 
 echo "Deploying Veles Shield microservices via Docker Compose..."
-echo "- Veles API Gateway (FastAPI + C++20 SIMD Engine)"
+echo "- Veles API Gateway (FastAPI + optional native C++ scorer)"
 echo "- Veles Frontend (React 19 + Nginx Alpine)"
 echo "- PostgreSQL 16 (Auditable Ledger & DPDPA)"
 echo "- Redis 7 Alpine (Sliding Window Velocity Counter)"

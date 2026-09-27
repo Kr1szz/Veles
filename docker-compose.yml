@@ -10,6 +10,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
+      - AUTH_ENABLED=true
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your deployment environment}
       - AEGIS_ENCRYPTION_KEY=${VELES_ENCRYPTION_KEY:?Set VELES_ENCRYPTION_KEY in your deployment environment}
       - VELES_ENCRYPTION_KEY=${VELES_ENCRYPTION_KEY:?Set VELES_ENCRYPTION_KEY in your deployment environment}

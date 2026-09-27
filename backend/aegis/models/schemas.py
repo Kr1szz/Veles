@@ -85,6 +85,11 @@ class DataErasureRequest(BaseModel):
     reason: str = Field("Right to be Forgotten under DPDPA 2023", max_length=256)
 
 
+class SiteCrawlRequest(BaseModel):
+    url: str = Field(..., min_length=8, max_length=2048)
+    max_pages: int = Field(20, ge=1, le=50)
+
+
 class SystemMetricsResponse(BaseModel):
     uptime_seconds: float
     total_evaluations: int

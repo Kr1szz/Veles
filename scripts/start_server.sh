@@ -28,14 +28,14 @@ fi
 
 # Ensure C++ library is built
 if [ ! -f "$PROJECT_ROOT/backend/cpp/libveles.so" ]; then
-    echo "Compiling C++ SIMD engine..."
+    echo "Compiling optional native C++ scoring library..."
     make -C backend/cpp
 fi
 
 echo "Starting Veles Shield API Gateway daemon in background..."
 setsid "$PROJECT_ROOT/.venv/bin/python3" -m uvicorn aegis.main:app \
     --app-dir backend \
-    --host 0.0.0.0 \
+    --host 127.0.0.1 \
     --port 8000 \
     --workers 2 \
     > "$LOG_FILE" 2>&1 < /dev/null &

@@ -2,6 +2,7 @@ import time
 import hashlib
 import json
 import asyncio
+import math
 from typing import Optional
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -13,8 +14,9 @@ from aegis.services.storage import get_db
 from aegis.engine.cpp_bindings import HAS_CPP_ENGINE
 from aegis.core.rate_limiter import rate_limiter
 from aegis.api.v1.auth import require_role
+from aegis.config import settings
 
-router = APIRouter(prefix="/metrics", tags=["Metrics & SLA Telemetry"])
+router = APIRouter(prefix="/metrics", tags=["Metrics & Processing Time"])
 START_TIME = time.time()
 
 _CACHE_LOCK = asyncio.Lock()
@@ -32,7 +34,7 @@ async def get_system_metrics(
     _: User = Depends(require_role(["analyst", "auditor"])),
 ):
     """
-    Returns real-time SLA metrics, P50/P95/P99 latency calculations via SQL aggregates,
+    Returns stored decision counts, observed latency percentiles, and configuration status,
     decision distributions, and acceleration engine health.
     Cached for 5 seconds with ETag support for efficient polling.
     """
@@ -86,9 +88,9 @@ async def get_system_metrics(
         if recent_latencies:
             recent_latencies.sort()
             n = len(recent_latencies)
-            p50 = recent_latencies[int(n * 0.50)]
-            p95 = recent_latencies[int(n * 0.95)]
-            p99 = recent_latencies[int(n * 0.99)]
+            p50 = recent_latencies[max(0, math.ceil(n * 0.50) - 1)]
+            p95 = recent_latencies[max(0, math.ceil(n * 0.95) - 1)]
+            p99 = recent_latencies[max(0, math.ceil(n * 0.99) - 1)]
         else:
             p50, p95, p99 = 0.0, 0.0, 0.0
 
@@ -102,8 +104,10 @@ async def get_system_metrics(
                 "p50_ms": round(p50, 2),
                 "p95_ms": round(p95, 2),
                 "p99_ms": round(p99, 2),
-                "sla_target_ms": 50.0,
-                "sla_compliant": (p95 <= 50.0) if total > 0 else True
+                "sample_size": len(recent_latencies),
+                "sample_limit": 5000,
+                "sla_target_ms": settings.SLA_MAX_LATENCY_MS,
+                "target_met": (p95 <= settings.SLA_MAX_LATENCY_MS) if total > 0 else None
             },
             "decision_distribution": {
                 "approve": approvals,

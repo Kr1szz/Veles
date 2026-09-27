@@ -54,7 +54,7 @@ def get_db():
 class StorageService:
     """
     Data Access Layer handling DPDPA encryption, blind indexing,
-    and immutable hash-chained audit logging.
+    and application-level hash-linked audit logging.
     """
 
     @staticmethod
@@ -116,9 +116,9 @@ class StorageService:
         consent_purpose: str
     ) -> Tuple[VerificationRecord, AuditLog]:
         """
-        Persists KYC verification with column-level encryption & immutable audit log.
+        Persists KYC verification with selected-field encryption and an audit entry.
         """
-        # Encrypt sensitive PII for DPDPA compliance
+        # Encrypt selected sensitive fields before persistence.
         full_name_enc = encrypt_pii(full_name)
         email_enc = encrypt_pii(email)
         phone_enc = encrypt_pii(phone)

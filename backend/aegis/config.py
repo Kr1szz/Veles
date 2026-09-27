@@ -4,7 +4,7 @@ import os
 import secrets
 from typing import List, Optional
 from cryptography.fernet import Fernet
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger("aegis.config")
@@ -23,10 +23,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
+    # Local demo mode has no sign-in. Production startup requires auth explicitly enabled.
+    AUTH_ENABLED: bool = False
 
     # Security: Secrets & Token Configuration
-    # In production, these should be supplied via environment variables
-    # Deployment secrets are deliberately never committed to source control.
+    # In production, supply this through the environment or a secret-mounted settings file.
     SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 hours
     ALGORITHM: str = "HS256"
@@ -37,12 +38,6 @@ class Settings(BaseSettings):
     # Cookie & host hardening
     COOKIE_SECURE: Optional[bool] = None
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "testserver"]
-
-    # Demo operator accounts (seeded only outside production)
-    DEMO_SEED_ENABLED: bool = True
-    DEMO_ANALYST_USERNAME: str = "demo.analyst"
-    DEMO_AUDITOR_USERNAME: str = "demo.auditor"
-    DEMO_PASSWORD: Optional[str] = None
 
     # DPDPA Column-Level Encryption Key (32-byte urlsafe base64 for Fernet / AES)
     AEGIS_ENCRYPTION_KEY: str = ""
@@ -56,7 +51,7 @@ class Settings(BaseSettings):
     REDIS_ENABLED: bool = True
 
     # Performance & SLA Thresholds
-    SLA_MAX_LATENCY_MS: float = 50.0  # sub-50ms SLA requirement
+    SLA_MAX_LATENCY_MS: float = 50.0  # configured processing-time target, not a guarantee
     RATE_LIMIT_GLOBAL_PER_MIN: int = 120
     VELOCITY_KYC_LIMIT_PER_MIN: int = 5
     VELOCITY_TX_LIMIT_PER_MIN: int = 10
@@ -78,11 +73,11 @@ class Settings(BaseSettings):
 
     @field_validator("SECRET_KEY", mode="before")
     @classmethod
-    def validate_secret_key(cls, value: object) -> str:
+    def validate_secret_key(cls, value: object, info: ValidationInfo) -> str:
         raw = value or ""
         if raw:
             return str(raw)
-        if os.environ.get("ENVIRONMENT", "development").lower() == "production":
+        if str(info.data.get("ENVIRONMENT", "development")).lower() == "production":
             return ""
         logger.warning(
             "SECRET_KEY is unset; generating an ephemeral development key. "
@@ -117,10 +112,12 @@ class Settings(BaseSettings):
 
     def validate_production_secrets(self) -> None:
         if self.ENVIRONMENT.lower() == "production":
+            if not self.AUTH_ENABLED:
+                raise RuntimeError("AUTH_ENABLED must be true in production.")
             if len(self.SECRET_KEY) < 32:
                 raise RuntimeError("SECRET_KEY must be supplied by the production secret manager (minimum 32 characters).")
-            if not (os.environ.get("VELES_ENCRYPTION_KEY") or os.environ.get("AEGIS_ENCRYPTION_KEY")):
-                raise RuntimeError("VELES_ENCRYPTION_KEY must be supplied by the production secret manager.")
+            if "AEGIS_ENCRYPTION_KEY" not in self.model_fields_set:
+                raise RuntimeError("AEGIS_ENCRYPTION_KEY must be explicitly supplied in production.")
 
 
 settings = Settings()

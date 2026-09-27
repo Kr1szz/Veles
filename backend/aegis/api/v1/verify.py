@@ -24,9 +24,8 @@ async def verify_kyc(
     _: object = Depends(require_role(["analyst", "auditor"]))
 ):
     """
-    Sub-50ms Identity & KYC Risk Engine (Aligned with IDfy OnboardIQ & Privy).
-    Executes velocity checks, deterministic rules, Shannon entropy lexical analysis,
-    Verhoeff checksum, DPDPA column-level encryption, and immutable audit logging.
+    Evaluates KYC inputs with configured rules and heuristic anomaly scoring,
+    then stores masked/encrypted fields and an application-level hash-linked audit entry.
     """
     if not getattr(payload, "consent_given", True):
         raise HTTPException(
@@ -51,8 +50,7 @@ async def verify_transaction(
     _: object = Depends(require_role(["analyst", "auditor"]))
 ):
     """
-    Sub-50ms Real-Time Transaction Risk Engine (Aligned with IDfy OneRisk).
-    Executes EWMA anomaly deviation, velocity counters, and fraud heuristic scoring.
+    Evaluates transaction inputs with velocity rules and heuristic anomaly scoring.
     """
     try:
         result = await verification_pipeline.process_transaction_verification(payload, db)

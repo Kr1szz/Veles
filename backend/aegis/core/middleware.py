@@ -46,8 +46,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
-    Applies strict production security headers and latency profiling.
-    Ensures sub-50ms SLA tracking and protects against XSS, clickjacking, MIME sniffing.
+    Applies response security headers and records request latency.
     """
 
     async def dispatch(self, request: Request, call_next):
@@ -58,7 +57,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         duration_ms = (time.perf_counter() - start_time) * 1000.0
 
-        # Performance & SLA tracking header
+        # Request timing headers
         response.headers["X-Response-Time-Ms"] = f"{duration_ms:.2f}"
         response.headers["X-Request-ID"] = request_id
 
@@ -94,10 +93,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             if "Cache-Control" not in response.headers:
                 response.headers["Cache-Control"] = "no-store"
 
-        # Log slow requests exceeding SLA
-        if duration_ms > 50.0 and not request.url.path.startswith("/docs"):
+        # Log requests that exceed the configured latency target.
+        if duration_ms > settings.SLA_MAX_LATENCY_MS and not request.url.path.startswith("/docs"):
             logger.warning(
-                f"[SLA Breach] {request.method} {request.url.path} took {duration_ms:.2f}ms (>50ms SLA)"
+                f"[Latency target exceeded] {request.method} {request.url.path} took {duration_ms:.2f}ms (>{settings.SLA_MAX_LATENCY_MS}ms)"
             )
 
         return response

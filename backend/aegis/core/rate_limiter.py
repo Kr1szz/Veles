@@ -12,9 +12,8 @@ logger = logging.getLogger("aegis.rate_limiter")
 
 class SlidingWindowRateLimiter:
     """
-    Sub-50ms Sliding Window Rate Limiter & Velocity Engine.
-    Uses Redis Sorted Sets (ZSET) when available, with an in-memory
-    thread-safe sliding-window fallback when running standalone or during Redis failover.
+    Sliding-window rate limiter with Redis and in-memory implementations.
+    Redis has finite connection timeouts; the in-memory fallback is process-local.
     """
 
     def __init__(self, redis_url: Optional[str] = None):
@@ -50,7 +49,7 @@ class SlidingWindowRateLimiter:
                     self.redis_url,
                     encoding="utf-8",
                     decode_responses=True,
-                    socket_timeout=0.2,  # Sub-millisecond strict timeout to maintain sub-50ms SLA
+                    socket_timeout=0.2,  # Seconds; bounds time spent waiting on Redis
                     socket_connect_timeout=0.5
                 )
                 await client.ping()

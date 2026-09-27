@@ -9,7 +9,7 @@ export default function DpdpaAuditView() {
   const [verifyingChain, setVerifyingChain] = useState(false);
 
   const [erasureId, setErasureId] = useState('');
-  const [erasureReason, setErasureReason] = useState('Data Principal requested Right to be Forgotten under DPDPA 2023 Sec 12');
+  const [erasureReason, setErasureReason] = useState('Synthetic demo data cleanup');
   const [erasureResult, setErasureResult] = useState('');
   const [erasureLoading, setErasureLoading] = useState(false);
 
@@ -67,9 +67,9 @@ export default function DpdpaAuditView() {
     <div className="stack mb">
       <div className="hstack-between">
         <div>
-          <h2 style={{ fontSize: 15, fontWeight: 700 }}>DPDPA 2023 compliance & cryptographic audit ledger</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 700 }}>Privacy controls & cryptographic audit ledger</h2>
           <p className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
-            IDfy Privy aligned: column-level encryption, purpose limitation, tamper-evident SHA-256 hash chains, right to erasure.
+            Demo controls: selected fields are encrypted at rest, consent records are stored, and audit entries are hash-linked. These mechanisms are not a compliance certification.
           </p>
         </div>
         <div className="hstack">
@@ -103,9 +103,9 @@ export default function DpdpaAuditView() {
         <div className="panel">
           <div className="panel-body stack">
             <div>
-              <span className="panel-title"><em>Right to erasure</em> (Sec 12)</span>
+              <span className="panel-title"><em>PII erasure demo</em></span>
               <p className="muted" style={{ fontSize: 11.5, marginTop: 6, lineHeight: 1.5 }}>
-                Data principals can request erasure of personal identifiers. Scrub encrypted PII while preserving anonymized audit lineage for AML compliance.
+                Scrubs matching encrypted fields and appends an audit entry. Review retention and legal requirements before using this on real records.
               </p>
             </div>
 
@@ -148,11 +148,11 @@ export default function DpdpaAuditView() {
           <div className="panel-body">
             <span className="panel-title"><em>Consent & purpose</em> limitation ledger</span>
             <p className="muted" style={{ fontSize: 11.5, marginTop: 6, marginBottom: 10, lineHeight: 1.5 }}>
-              DPDPA 2023 requires purpose limitation. All verifications record explicit user consent and statutory retention expiry.
+              KYC requests require a consent flag and may add a purpose record. This demo does not enforce retention expiry or determine legal compliance.
             </p>
             <div style={{ maxHeight: 224, overflowY: 'auto' }}>
               {consents.length === 0 ? (
-                <div className="empty-state" style={{ padding: '20px 0' }}>No active consents recorded yet.</div>
+                <div className="empty-state" style={{ padding: '20px 0' }}>No consent records yet.</div>
               ) : (
                 <table className="table" style={{ fontSize: 11 }}>
                   <thead>

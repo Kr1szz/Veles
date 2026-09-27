@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Veles Shield — Production Infrastructure & Service Initializer
+# Veles Shield — Local Development Initializer
 # ==============================================================================
 set -e
 
@@ -15,7 +15,7 @@ COLOR_RED="\033[0;31m"
 COLOR_RESET="\033[0m"
 
 echo -e "${COLOR_CYAN}==============================================================================${COLOR_RESET}"
-echo -e "${COLOR_CYAN}       Veles Shield: Production Service Initializer & Health Diagnostics      ${COLOR_RESET}"
+echo -e "${COLOR_CYAN}       Veles Shield: Local Development Setup & Diagnostics                    ${COLOR_RESET}"
 echo -e "${COLOR_CYAN}==============================================================================${COLOR_RESET}"
 
 # 1. Check Python Virtual Environment
@@ -32,12 +32,16 @@ else
     echo -e "${COLOR_GREEN}Virtualenv initialized.${COLOR_RESET}"
 fi
 
-# 2. Build C++ SIMD Anomaly & Entropy Engine
-echo -n "[2/7] Checking C++20 native acceleration library (libveles.so)... "
+# 2. Build optional native C++ scoring library
+echo -n "[2/7] Checking native C++ scoring library (libveles.so)... "
 if [ ! -f "backend/cpp/libveles.so" ]; then
-    echo -e "${COLOR_YELLOW}Building C++ engine...${COLOR_RESET}"
-    make -C backend/cpp
-    echo -e "${COLOR_GREEN}libveles.so compiled successfully.${COLOR_RESET}"
+    if command -v "${CXX:-g++}" &>/dev/null; then
+        echo -e "${COLOR_YELLOW}Building optional native scorer...${COLOR_RESET}"
+        make -C backend/cpp
+        echo -e "${COLOR_GREEN}libveles.so compiled successfully.${COLOR_RESET}"
+    else
+        echo -e "${COLOR_YELLOW}C++ compiler not found; Python scoring fallback will be used.${COLOR_RESET}"
+    fi
 else
     echo -e "${COLOR_GREEN}OK (backend/cpp/libveles.so present)${COLOR_RESET}"
 fi
@@ -66,14 +70,14 @@ else
     fi
 fi
 
-# 4. Initialize Database Schema & Seed Analyst Account
-echo -n "[4/7] Initializing Database schema & audit tables... "
+# 4. Initialize database schema
+echo -n "[4/7] Initializing database schema & audit tables... "
 $PYTHON -c "
 from aegis.services.storage import init_db
 init_db()
 print('Database verified.')
 " &>/dev/null
-echo -e "${COLOR_GREEN}OK (veles_shield.db ready with analyst credentials)${COLOR_RESET}"
+echo -e "${COLOR_GREEN}OK (database schema ready; no accounts or sample records are seeded)${COLOR_RESET}"
 
 # 5. Build Frontend SPA Assets
 echo -n "[5/7] Verifying React 19 / Vite frontend build... "
@@ -98,7 +102,7 @@ else
 fi
 
 # 7. Self-Diagnostic Health Verification
-echo -n "[7/7] Running core diagnostics (C++ SIMD, Fernet DPDPA, Sliding Window)... "
+echo -n "[7/7] Running core diagnostics (native scoring, encryption, velocity limiter)... "
 $PYTHON -c "
 import sys
 from aegis.engine.cpp_bindings import calculate_shannon_entropy, HAS_CPP_ENGINE
@@ -113,14 +117,15 @@ echo -e "${COLOR_GREEN}ALL SYSTEM DIAGNOSTICS PASSED.${COLOR_RESET}"
 
 echo ""
 echo -e "${COLOR_CYAN}==============================================================================${COLOR_RESET}"
-echo -e "${COLOR_GREEN}      Veles Shield is Fully Initialized and Production Ready!                 ${COLOR_RESET}"
+echo -e "${COLOR_GREEN}      Veles Shield local development setup is complete.                       ${COLOR_RESET}"
 echo -e "${COLOR_CYAN}==============================================================================${COLOR_RESET}"
 echo "Available Startup & Management Modes:"
 echo "  1) Start Microservices Locally:   make run"
 echo "     - URL: http://localhost:8000"
 echo "     - API Docs: http://localhost:8000/docs"
 echo "     - Health: http://localhost:8000/health"
-echo "     - Provision operator accounts before signing in; no default account is created."
+echo "     - Local demo mode does not require sign-in; use synthetic data."
+echo "     - Production requires AUTH_ENABLED=true and externally managed secrets."
 echo ""
 echo "  2) Start Docker Microservices:    sudo ./scripts/docker_run.sh"
 echo "     - Frontend Dashboard: http://localhost:3000"

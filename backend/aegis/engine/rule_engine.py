@@ -25,11 +25,10 @@ DISPOSABLE_EMAIL_DOMAINS = {
     "inboxkitten.com"
 }
 
-# Known Flagged / High-Risk IP subnets (Simulated blacklist / TOR exit nodes / compromised proxy ranges)
+# Static flagged IP subnets for deterministic behavior in demos and tests.
 FLAGGED_IP_NETWORKS = [
-    ipaddress.ip_network("198.51.100.0/24"),  # Testnet-2 / simulated bad subnet
-    ipaddress.ip_network("203.0.113.0/24"),   # Testnet-3 / simulated botnet
-    ipaddress.ip_network("185.220.101.0/24"), # Public known TOR exit relay block
+    ipaddress.ip_network("198.51.100.0/24"),  # Documentation-only range
+    ipaddress.ip_network("203.0.113.0/24"),   # Documentation-only range
 ]
 
 # Flagged Device Fingerprints (Stolen / Bot emulator fingerprints)
@@ -105,7 +104,6 @@ class RuleEngine:
         id_type: Optional[str],
         id_number: Optional[str],
         country_code: str = "IN",
-        ip_country: Optional[str] = "IN"
     ) -> Dict[str, Any]:
         """
         Executes all deterministic rules against a KYC application.
@@ -138,13 +136,13 @@ class RuleEngine:
                 "detail": f"Email domain in disposable/burner provider blacklist: {email}"
             })
 
-        # 3. Flagged IP / TOR Network Check
+        # 3. Static flagged subnet check
         if ip_address and self.is_flagged_ip(ip_address):
             triggered_rules.append({
                 "rule": "FLAGGED_HIGH_RISK_IP",
                 "severity": "HIGH",
                 "weight": 0.60,
-                "detail": f"IP address belongs to a known proxy/TOR exit pool: {ip_address}"
+                "detail": f"IP address belongs to a statically configured flagged subnet: {ip_address}"
             })
 
         # 4. Flagged Device Fingerprint Check
@@ -157,16 +155,7 @@ class RuleEngine:
                 "detail": "Device fingerprint associated with automated bot emulator"
             })
 
-        # 5. Geolocation / Country Mismatch
-        if ip_country and country_code and ip_country != country_code:
-            triggered_rules.append({
-                "rule": "GEO_LOCATION_MISMATCH",
-                "severity": "MEDIUM",
-                "weight": 0.25,
-                "detail": f"Document issued for country {country_code}, but request originated from IP country {ip_country}"
-            })
-
-        # 6. ID Document Verification (PAN / Aadhaar)
+        # 5. ID Document Structure / Checksum (PAN / Aadhaar)
         if id_type and id_number:
             id_type_upper = id_type.upper()
             if id_type_upper == "PAN":
@@ -234,7 +223,7 @@ class RuleEngine:
                 "rule": "TRANSACTION_FROM_FLAGGED_IP",
                 "severity": "HIGH",
                 "weight": 0.55,
-                "detail": f"Transaction initiated from flagged network: {ip_address}"
+                "detail": f"Transaction IP belongs to a statically configured flagged subnet: {ip_address}"
             })
 
         # 3. Flagged Device Check

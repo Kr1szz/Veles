@@ -21,7 +21,7 @@ def get_audit_ledger(
     _: User = Depends(require_role(["auditor"]))
 ):
     """
-    Returns immutable audit logs with SHA-256 hash chaining details.
+    Returns application-level audit records with SHA-256 chain details.
     """
     query = db.query(AuditLog)
     total = query.count()

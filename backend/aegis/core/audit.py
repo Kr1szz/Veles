@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List, Tuple
 
 class ImmutableAuditLedger:
     """
-    Cryptographic SHA-256 Hash-Chained Audit Ledger for DPDPA compliance.
+    Application-level SHA-256 hash-linked audit log; this is not immutable storage.
     Ensures transactional lineage and tamper-evident history for every risk decision.
     """
 
@@ -40,7 +40,7 @@ class ImmutableAuditLedger:
         prev_hash: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Creates an immutable audit log entry.
+        Creates a hash-linked audit log entry.
         """
         timestamp = datetime.now(timezone.utc).isoformat()
         previous = prev_hash or cls.GENESIS_HASH

@@ -13,11 +13,12 @@ status:
 	@echo "--- Redis Status ---"
 	@$(MAKE) --no-print-directory redis-ping
 	@echo "--- Veles Shield API Status ---"
-	@curl -s http://localhost:8000/health || echo "API is not reachable on localhost:8000"
+	@curl -s http://127.0.0.1:$(PORT)/health || echo "API is not reachable on localhost:$(PORT)"
 
 
 PYTHON ?= .venv/bin/python3
 PYTEST ?= .venv/bin/pytest
+PORT ?= 8000
 REDIS_SERVER ?= bin/redis-server
 REDIS_CLI ?= bin/redis-cli
 
@@ -65,8 +66,8 @@ docker-up:
 docker-down:
 	docker compose down
 
-run: build-cpp build-frontend
-	$(PYTHON) -m uvicorn aegis.main:app --app-dir backend --host 0.0.0.0 --port 8000 --reload
+run: build-frontend
+	$(PYTHON) -m uvicorn aegis.main:app --app-dir backend --host 127.0.0.1 --port $(PORT) --reload
 
 clean:
 	$(MAKE) -C backend/cpp clean

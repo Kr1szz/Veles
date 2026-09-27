@@ -94,7 +94,7 @@ class AnalystReview(Base):
 
 class AuditLog(Base):
     """
-    Cryptographically chained immutable ledger.
+    Application-level hash-linked audit log.
     """
     __tablename__ = "audit_logs"
 
@@ -123,3 +123,36 @@ class ConsentRecord(Base):
     granted_at = Column(DateTime, default=utc_now, nullable=False)
     revoked_at = Column(DateTime, nullable=True)
     retention_period_days = Column(Integer, default=1825, nullable=False)  # 5 years statutory retention
+
+
+class SiteCrawl(Base):
+    __tablename__ = "site_crawls"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    requested_url = Column(Text, nullable=False)
+    origin = Column(String(512), nullable=False, index=True)
+    status = Column(String(24), nullable=False, default="RUNNING")
+    max_pages = Column(Integer, nullable=False)
+    pages_discovered = Column(Integer, nullable=False, default=0)
+    pages_crawled = Column(Integer, nullable=False, default=0)
+    pages_failed = Column(Integer, nullable=False, default=0)
+    pages_skipped_robots = Column(Integer, nullable=False, default=0)
+    started_at = Column(DateTime, default=utc_now, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class CrawledPage(Base):
+    __tablename__ = "crawled_pages"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    crawl_id = Column(String(36), ForeignKey("site_crawls.id"), nullable=False, index=True)
+    url = Column(Text, nullable=False)
+    canonical_url = Column(Text, nullable=True)
+    http_status = Column(Integer, nullable=True)
+    title = Column(String(512), nullable=True)
+    description = Column(Text, nullable=True)
+    headings_json = Column(Text, nullable=False, default="[]")
+    internal_links_json = Column(Text, nullable=False, default="[]")
+    text_excerpt = Column(Text, nullable=True)
+    error = Column(String(512), nullable=True)
+    fetched_at = Column(DateTime, default=utc_now, nullable=False)

@@ -6,7 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from aegis.config import settings
-from aegis.models.database import User
+from aegis.models.database import User, utc_now
 from aegis.models.schemas import LoginRequest, TokenResponse
 from aegis.core.rate_limiter import rate_limiter
 from aegis.core.middleware import get_client_ip
@@ -72,8 +72,26 @@ async def get_current_user(
     return user
 
 
+async def get_operator(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security_scheme)],
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User:
+    """Use a local-only demo identity for role-protected routes when auth is disabled."""
+    if not settings.AUTH_ENABLED and settings.ENVIRONMENT.lower() != "production":
+        return User(
+            id="local-demo",
+            username="local.demo",
+            hashed_password="",
+            role="admin",
+            is_active=True,
+            created_at=utc_now(),
+        )
+    return await get_current_user(credentials, request, db)
+
+
 def require_role(allowed_roles: list[str]):
-    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+    def role_checker(current_user: User = Depends(get_operator)) -> User:
         if current_user.role not in allowed_roles and current_user.role != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

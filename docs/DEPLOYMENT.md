@@ -1,14 +1,18 @@
-# Veles Shield: Production Deployment & Operations Runbook
+# Veles Shield: Deployment Notes
 
 > **Target Environment:** Enterprise Linux / Cloud Kubernetes (AWS EKS, GCP GKE, Azure AKS)  
-> **Production Standard:** Zero-downtime rolling deploys, sub-50ms latency SLA, DPDPA 2023 compliance.
+> **Scope:** The Compose and Kubernetes files are deployment examples, not a validated production platform. No zero-downtime, latency SLA, or regulatory compliance claim is made by these templates.
+
+Local development defaults to no authentication for the dashboard demo. Never expose that mode to a shared network. Production startup requires `ENVIRONMENT=production`, `AUTH_ENABLED=true`, and strong externally managed secrets. The included dashboard currently targets the local demo workflow; a production deployment must provide an authenticated dashboard/API client.
 
 ---
 
 ## 1. System Requirements & Prerequisites
 
-### Minimal Production Specifications (Single Node / Small Cluster)
-- **CPU:** 4 vCPUs (x86_64 with SSE4.2 / AVX2 instructions for C++ SIMD acceleration)
+### Illustrative starting point only (not capacity-tested)
+
+The following is a rough environment example, not a minimum supported specification or evidence of an SLA. Benchmark with the chosen database, traffic shape, native-engine build, and deployment topology.
+- **CPU:** 4 vCPUs as an initial evaluation size; no specific vector instruction set is required by the current default compiler flags.
 - **RAM:** 8 GB
 - **Storage:** 50 GB NVMe SSD (PostgreSQL WAL + Redis AOF persistence)
 - **Network:** 1 Gbps NIC, sub-millisecond local network latency to Redis & Database
@@ -30,18 +34,21 @@ Configure `/app/.env` or mount Kubernetes secrets (`veles-secrets`):
 | :--- | :--- | :--- | :--- |
 | `ENVIRONMENT` | `string` | Deployment environment | Set to `production`. |
 | `DEBUG` | `bool` | FastAPI debug mode | **Must be `false`**. |
+| `AUTH_ENABLED` | `bool` | API authentication switch | Must be `true` in production; local default is `false`. |
 | `SECRET_KEY` | `string` | JWT signature & blind index key | Min 32 random characters: `openssl rand -hex 32`. |
 | `AEGIS_ENCRYPTION_KEY` | `string` | 32-byte urlsafe base64 Fernet key | Base64 32-byte key: `Fernet.generate_key()`. |
 | `DATABASE_URL` | `string` | SQLAlchemy connection string | `postgresql+psycopg2://user:pass@host:5432/veles_shield` |
 | `REDIS_URL` | `string` | Redis connection URI | `redis://redis-cluster:6379/0` |
 | `REDIS_ENABLED` | `bool` | Redis rate limiting toggle | Set to `true`. |
-| `SLA_MAX_LATENCY_MS`| `float` | SLA threshold in ms | Default: `50.0`. |
+| `SLA_MAX_LATENCY_MS`| `float` | Decision-processing target in ms | Default: `50.0`; not an end-to-end guarantee. |
 
 ---
 
 ## 3. Deployment Option A: Docker Compose Microservices
 
 Recommended for staging, single-server edge instances, and on-premise evaluation.
+
+The included Compose configuration sets production mode and authentication on. It does not create user accounts; the repository has no operator provisioning endpoint. Configure an approved provisioning process before using protected routes.
 
 ### Step 1: Pre-flight Initialization
 ```bash
@@ -74,9 +81,9 @@ sudo docker compose down
 
 ---
 
-## 4. Deployment Option B: Production Kubernetes (K8s)
+## 4. Deployment Option B: Kubernetes example manifests
 
-The `k8s/` directory contains complete Kubernetes manifests with strict security postures, non-root user execution, readiness probes, and PodDisruptionBudgets.
+The `k8s/` directory contains starter manifests. Review secret handling, network policies, probes, resource limits, persistent storage, ingress TLS, authentication, migrations, and rollout behavior for the target cluster before use.
 
 ### 1. Apply Namespace, ConfigMap & Secrets
 ```bash
@@ -115,7 +122,7 @@ kubectl logs -l app=veles-api -n veles-shield --tail=50
 
 ## 5. Redis High-Availability Configuration
 
-For high-throughput (>10,000 req/sec), configure Redis with Sentinel or AWS ElastiCache / Redis Enterprise:
+For deployments that require Redis high availability, evaluate Sentinel or a managed Redis service. Capacity must be measured for the selected workload and topology.
 
 ### Production `redis.conf` Directives:
 ```conf
@@ -190,7 +197,7 @@ openssl rand -hex 32
 
 ## 8. Incident Response & Troubleshooting Runbook
 
-### Issue 1: Sub-50ms SLA Breached (`X-Response-Time-Ms > 50`)
+### Issue 1: Processing-time target exceeded
 - **Diagnostic:** Check `/api/v1/metrics/latency`.
 - **Cause 1: Redis Network Latency:**
   - Verify Redis ping: `make redis-ping`. If ping latency $>5\text{ms}$, inspect network hops or noisy neighbors.

@@ -19,7 +19,7 @@ logger = logging.getLogger("aegis.engine.pipeline")
 class VerificationPipeline:
     """
     High-Throughput Risk Engine Pipeline.
-    Evaluates payloads under sub-50ms SLA targets.
+    Evaluates payloads and reports processing time against the configured target.
     """
 
     @classmethod
@@ -30,7 +30,7 @@ class VerificationPipeline:
     ) -> RiskEvaluationResponse:
         start_time = time.perf_counter()
 
-        # Execute Rule Engine and Anomaly Engine in parallel
+        # Rule evaluation is async; the synchronous anomaly score is computed before it is awaited.
         rule_eval_task = rule_engine.evaluate_kyc_rules(
             full_name=payload.full_name,
             email=payload.email,
@@ -73,7 +73,7 @@ class VerificationPipeline:
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
         sla_met = elapsed_ms <= settings.SLA_MAX_LATENCY_MS
 
-        # Persist to database with column-level DPDPA encryption & immutable audit log
+        # Persist selected encrypted fields and an application-level audit entry.
         rec, audit_entry = StorageService.save_kyc_verification(
             db=db,
             full_name=payload.full_name,

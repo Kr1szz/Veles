@@ -60,7 +60,7 @@ def override_decision(
 ):
     """
     Allows authorized analysts to manually override a decision (APPROVE/REJECT/ESCALATE).
-    Logs the action into the cryptographic immutable audit ledger.
+    Logs the action into the application-level hash-linked audit log.
     """
     try:
         rec, review, audit_log = StorageService.apply_analyst_review(
